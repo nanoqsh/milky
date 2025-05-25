@@ -1,8 +1,10 @@
 use {
+    proc_macro2::{TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
     std::{
-        fmt::Write,
+        fmt::{Display, Write},
         io::{self, Error, Read},
+        ops::Range,
         process::ExitCode,
     },
 };
@@ -23,8 +25,21 @@ fn run() -> Result<(), Error> {
     Ok(())
 }
 
+fn escape(s: &str, output: &mut String) {
+    for c in s.chars() {
+        match c {
+            '&' => output.push_str("&amp;"),
+            '<' => output.push_str("&lt;"),
+            '>' => output.push_str("&gt;"),
+            '"' => output.push_str("&quot;"),
+            '\'' => output.push_str("&apos;"),
+            _ => output.push(c),
+        }
+    }
+}
+
 fn make_html(input: &str) -> String {
-    let mut html = String::new();
+    let mut html = String::from("<!DOCTYPE html>");
     let mut code = None;
 
     for event in Parser::new(&input) {
@@ -32,9 +47,9 @@ fn make_html(input: &str) -> String {
             Event::Start(Tag::Paragraph) => html.push_str("<p>"),
             Event::Start(Tag::Heading { level, .. }) => _ = write!(&mut html, "<{level}>"),
             Event::Start(Tag::BlockQuote(_)) => todo!(),
-            Event::Start(Tag::CodeBlock(CodeBlockKind::Indented)) => html.push_str("<pre>"),
+            Event::Start(Tag::CodeBlock(CodeBlockKind::Indented)) => html.push_str("<pre><code>"),
             Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(s))) => {
-                html.push_str("<pre>");
+                html.push_str("<pre><code>");
                 if &*s == "rust" {
                     let len = html.len();
                     code = Some((len, len));
@@ -66,12 +81,14 @@ fn make_html(input: &str) -> String {
             Event::End(TagEnd::BlockQuote(_)) => todo!(),
             Event::End(TagEnd::CodeBlock) => {
                 if let Some((start, end)) = code.take() {
-                    let highlighted = highlight_rust(&html[start..end]);
+                    let (Ok(hl) | Err(hl)) =
+                        highlight_rust(&html[start..end]).map_err(|e| e.to_string());
+
                     html.truncate(start);
-                    html.push_str(&highlighted);
+                    html.push_str(&hl);
                 }
 
-                html.push_str("</pre>")
+                html.push_str("</code></pre>")
             }
             Event::End(TagEnd::HtmlBlock) => todo!(),
             Event::End(TagEnd::List(_)) => todo!(),
@@ -93,12 +110,18 @@ fn make_html(input: &str) -> String {
             Event::End(TagEnd::Image) => todo!(),
             Event::End(TagEnd::MetadataBlock(_)) => todo!(),
             Event::Text(s) => {
-                html.push_str(&s);
                 if let Some((start, _)) = code {
+                    html.push_str(&s);
                     code = Some((start, html.len()));
+                } else {
+                    escape(&s, &mut html);
                 }
             }
-            Event::Code(s) => _ = write!(&mut html, "<code>{s}</code>"),
+            Event::Code(s) => {
+                html.push_str("<code>");
+                escape(&s, &mut html);
+                html.push_str("</code>");
+            }
             Event::InlineMath(_) => todo!(),
             Event::DisplayMath(_) => todo!(),
             Event::Html(s) => html.push_str(&s),
@@ -114,6 +137,73 @@ fn make_html(input: &str) -> String {
     html
 }
 
-fn highlight_rust(code: &str) -> String {
-    format!("RUST!{code}RUST!")
+fn highlight_rust(code: &str) -> Result<String, syn::Error> {
+    let stream: TokenStream = syn::parse_str(code)?;
+    let mut tokens = vec![];
+    parse(code, stream, &mut tokens);
+
+    let mut output = String::new();
+    let mut last = 0;
+    for token in tokens {
+        let start = token.span.start;
+        let end = token.span.end;
+        escape(&code[last..start], &mut output);
+        output.push_str("<span style=\"font-weight: bold;\">");
+        escape(&code[start..end], &mut output);
+        output.push_str("</span>");
+        last = end;
+    }
+
+    if let Some(s) = code.get(last..) {
+        escape(s, &mut output);
+    }
+
+    Ok(output)
 }
+
+enum Kind {
+    Keyword,
+    Literal,
+}
+
+struct Token {
+    kind: Kind,
+    span: Range<usize>,
+}
+
+fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
+    for tree in stream {
+        match tree {
+            TokenTree::Group(group) => parse(code, group.stream(), tokens),
+            TokenTree::Ident(ident) => {
+                let span = ident.span().byte_range();
+                let s = &code[span.clone()];
+                if KEYWORDS.contains(&s) {
+                    tokens.push(Token {
+                        kind: Kind::Keyword,
+                        span,
+                    });
+                }
+            }
+            TokenTree::Punct(_) => {}
+            TokenTree::Literal(literal) => {
+                let span = literal.span().byte_range();
+                if code[span.clone()].starts_with("///") {
+                    continue;
+                }
+
+                tokens.push(Token {
+                    kind: Kind::Literal,
+                    span,
+                })
+            }
+        }
+    }
+}
+
+const KEYWORDS: [&str; 38] = [
+    "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn", "for",
+    "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return",
+    "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe", "use", "where",
+    "while", "async", "await", "dyn",
+];
