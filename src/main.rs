@@ -2,7 +2,7 @@ use {
     proc_macro2::{TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
     std::{
-        fmt::{Display, Write},
+        fmt::Write,
         io::{self, Error, Read},
         ops::Range,
         process::ExitCode,
@@ -39,20 +39,22 @@ fn escape(s: &str, output: &mut String) {
 }
 
 fn make_html(input: &str) -> String {
-    let mut html = String::from("<!DOCTYPE html>");
+    let mut html = String::new();
     let mut code = None;
 
-    for event in Parser::new(&input) {
+    for event in Parser::new(input) {
         match event {
             Event::Start(Tag::Paragraph) => html.push_str("<p>"),
             Event::Start(Tag::Heading { level, .. }) => _ = write!(&mut html, "<{level}>"),
             Event::Start(Tag::BlockQuote(_)) => todo!(),
             Event::Start(Tag::CodeBlock(CodeBlockKind::Indented)) => html.push_str("<pre><code>"),
             Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(s))) => {
-                html.push_str("<pre><code>");
                 if &*s == "rust" {
+                    html.push_str("<pre><code class=\"rust\">");
                     let len = html.len();
                     code = Some((len, len));
+                } else {
+                    html.push_str("<pre><code>");
                 }
             }
             Event::Start(Tag::HtmlBlock) => todo!(),
@@ -72,7 +74,7 @@ fn make_html(input: &str) -> String {
             Event::Start(Tag::Superscript) => todo!(),
             Event::Start(Tag::Subscript) => todo!(),
             Event::Start(Tag::Link { dest_url, .. }) => {
-                _ = write!(&mut html, "<a href=\"{dest_url}\">")
+                _ = write!(&mut html, "<a href=\"{dest_url}\">");
             }
             Event::Start(Tag::Image { .. }) => todo!(),
             Event::Start(Tag::MetadataBlock(_)) => todo!(),
@@ -81,14 +83,20 @@ fn make_html(input: &str) -> String {
             Event::End(TagEnd::BlockQuote(_)) => todo!(),
             Event::End(TagEnd::CodeBlock) => {
                 if let Some((start, end)) = code.take() {
-                    let (Ok(hl) | Err(hl)) =
-                        highlight_rust(&html[start..end]).map_err(|e| e.to_string());
+                    let src = &html[start..end];
+                    let src = match highlight_rust(src) {
+                        Ok(src) => src,
+                        Err(e) => {
+                            eprintln!("highlight rust error: {e}");
+                            src.to_owned()
+                        }
+                    };
 
                     html.truncate(start);
-                    html.push_str(&hl);
+                    html.push_str(&src);
                 }
 
-                html.push_str("</code></pre>")
+                html.push_str("</code></pre>");
             }
             Event::End(TagEnd::HtmlBlock) => todo!(),
             Event::End(TagEnd::List(_)) => todo!(),
@@ -148,7 +156,7 @@ fn highlight_rust(code: &str) -> Result<String, syn::Error> {
         let start = token.span.start;
         let end = token.span.end;
         escape(&code[last..start], &mut output);
-        output.push_str("<span style=\"font-weight: bold;\">");
+        _ = write!(&mut output, "<span class=\"{}\">", token.kind.class());
         escape(&code[start..end], &mut output);
         output.push_str("</span>");
         last = end;
@@ -164,6 +172,15 @@ fn highlight_rust(code: &str) -> Result<String, syn::Error> {
 enum Kind {
     Keyword,
     Literal,
+}
+
+impl Kind {
+    fn class(self) -> &'static str {
+        match self {
+            Self::Keyword => "kw",
+            Self::Literal => "li",
+        }
+    }
 }
 
 struct Token {
@@ -195,7 +212,7 @@ fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
                 tokens.push(Token {
                     kind: Kind::Literal,
                     span,
-                })
+                });
             }
         }
     }

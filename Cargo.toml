@@ -11,3 +11,22 @@ syn = { version = "2.0", default-features = false, features = ["parsing"] }
 version = "1.0"
 default-features = false
 features = ["span-locations"]
+
+[lints.rust]
+elided-lifetimes-in-paths = "deny"
+
+[lints.clippy]
+large-futures = "deny"
+manual-assert = "deny"
+match-wildcard-for-single-variants = "deny"
+missing-assert-message = "deny"
+semicolon-if-nothing-returned = "deny"
+trivially-copy-pass-by-ref = "deny"
+use-self = "deny"
+unwrap-used = "deny"
+
+[profile.release]
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = true
