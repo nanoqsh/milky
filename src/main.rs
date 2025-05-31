@@ -1,10 +1,9 @@
 use {
-    proc_macro2::{TokenStream, TokenTree},
+    proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
     std::{
         fmt::Write,
         io::{self, Error, Read},
-        ops::Range,
         process::ExitCode,
     },
 };
@@ -153,13 +152,12 @@ fn highlight_rust(code: &str) -> Result<String, syn::Error> {
     let mut output = String::new();
     let mut last = 0;
     for token in tokens {
-        let start = token.span.start;
-        let end = token.span.end;
-        escape(&code[last..start], &mut output);
+        let range = token.span.byte_range();
+        escape(&code[last..range.start], &mut output);
         _ = write!(&mut output, "<span class=\"{}\">", token.kind.class());
-        escape(&code[start..end], &mut output);
+        escape(&code[range.start..range.end], &mut output);
         output.push_str("</span>");
-        last = end;
+        last = range.end;
     }
 
     if let Some(s) = code.get(last..) {
@@ -185,7 +183,7 @@ impl Kind {
 
 struct Token {
     kind: Kind,
-    span: Range<usize>,
+    span: Span,
 }
 
 fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
@@ -193,8 +191,8 @@ fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
         match tree {
             TokenTree::Group(group) => parse(code, group.stream(), tokens),
             TokenTree::Ident(ident) => {
-                let span = ident.span().byte_range();
-                let s = &code[span.clone()];
+                let span = ident.span();
+                let s = &code[span.byte_range()];
                 if KEYWORDS.contains(&s) {
                     tokens.push(Token {
                         kind: Kind::Keyword,
@@ -204,8 +202,8 @@ fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
             }
             TokenTree::Punct(_) => {}
             TokenTree::Literal(literal) => {
-                let span = literal.span().byte_range();
-                if code[span.clone()].starts_with("///") {
+                let span = literal.span();
+                if code[span.byte_range()].starts_with("///") {
                     continue;
                 }
 
