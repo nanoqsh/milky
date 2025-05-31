@@ -2,6 +2,7 @@ use {
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
     std::{
+        collections::HashSet,
         fmt::Write,
         io::{self, Error, Read},
         process::ExitCode,
@@ -193,7 +194,7 @@ fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
             TokenTree::Ident(ident) => {
                 let span = ident.span();
                 let s = &code[span.byte_range()];
-                if KEYWORDS.contains(&s) {
+                if is_keyword(s) {
                     tokens.push(Token {
                         kind: Kind::Keyword,
                         span,
@@ -203,6 +204,8 @@ fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
             TokenTree::Punct(_) => {}
             TokenTree::Literal(literal) => {
                 let span = literal.span();
+
+                // skip docs
                 if code[span.byte_range()].starts_with("///") {
                     continue;
                 }
@@ -216,9 +219,15 @@ fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
     }
 }
 
-const KEYWORDS: [&str; 38] = [
-    "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn", "for",
-    "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return",
-    "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe", "use", "where",
-    "while", "async", "await", "dyn",
-];
+fn is_keyword(s: &str) -> bool {
+    thread_local! {
+        static KEYWORDS: HashSet<&'static str> = HashSet::from([
+            "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
+            "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
+            "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
+            "use", "where", "while", "async", "await", "dyn",
+        ]);
+    }
+
+    KEYWORDS.with(|set| set.contains(s))
+}
