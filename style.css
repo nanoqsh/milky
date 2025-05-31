@@ -1,9 +1,24 @@
+:root {
+    --fg: #d4be98;
+    --bg: #202020;
+    --bgcode: #282726;
+    --kw: #f3886d;
+    --li: #e7c061;
+    --border: 4px;
+    --pad: 1.5rem;
+}
+
+::selection {
+    color: var(--bg);
+    background: var(--li);
+}
+
 body {
     margin: 0;
     padding: 0;
     font-family: system-ui, sans-serif;
-    background: #fafafa;
-    color: #222;
+    background: var(--bg);
+    color: var(--fg);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -19,7 +34,50 @@ article {
 header {
     font-size: 1.2rem;
     font-weight: bold;
-    background: #eee;
     width: 100%;
     text-align: center;
+}
+
+article pre {
+    padding: var(--pad);
+    overflow: scroll;
+    background: var(--bgcode);
+    border-radius: var(--border);
+}
+
+article p {
+    margin: var(--pad) 0;
+    line-height: 1.5rem;
+}
+
+@media (max-width: 870px) {
+    article p {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+}
+
+a {
+    color: var(--li);
+    text-decoration: none;
+}
+
+a :hover {
+    text-decoration: underline;
+}
+
+code .kw {
+    font-weight: bold;
+    color: var(--kw);
+}
+
+code .li {
+    color: var(--li);
+}
+
+.inline {
+    padding: 0 4px;
+    font-weight: bold;
+    background: var(--bgcode);
+    border-radius: var(--border);
 }

@@ -70,7 +70,7 @@ fn article(input: &str) -> String {
             Event::Start(Tag::CodeBlock(CodeBlockKind::Indented)) => html.push_str("<pre><code>"),
             Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(s))) => {
                 if &*s == "rust" {
-                    html.push_str("<pre><code class=\"rust\">");
+                    html.push_str("<pre><code>");
                     let len = html.len();
                     code = Some((len, len));
                 } else {
@@ -94,7 +94,7 @@ fn article(input: &str) -> String {
             Event::Start(Tag::Superscript) => todo!(),
             Event::Start(Tag::Subscript) => todo!(),
             Event::Start(Tag::Link { dest_url, .. }) => {
-                _ = write!(&mut html, "<a href=\"{dest_url}\">");
+                _ = write!(&mut html, "<a href=\"{dest_url}\" target=\"_blank\">");
             }
             Event::Start(Tag::Image { .. }) => todo!(),
             Event::Start(Tag::MetadataBlock(_)) => todo!(),
@@ -146,7 +146,7 @@ fn article(input: &str) -> String {
                 }
             }
             Event::Code(s) => {
-                html.push_str("<code>");
+                html.push_str("<code class=\"inline\">");
                 escape(&s, &mut html);
                 html.push_str("</code>");
             }
