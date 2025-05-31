@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+maud = "0.27"
 pulldown-cmark = { version = "0.13", default-features = false }
 syn = { version = "2.0", default-features = false, features = ["parsing"] }
 

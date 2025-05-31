@@ -21,8 +21,28 @@ fn main() -> ExitCode {
 fn run() -> Result<(), Error> {
     let mut input = String::new();
     io::stdin().lock().read_to_string(&mut input)?;
-    println!("{}", make_html(&input));
+    let page = page(&article(&input), "The article name");
+    println!("{page}");
     Ok(())
+}
+
+fn page(article: &str, title: &str) -> String {
+    maud::html! {
+        (maud::DOCTYPE)
+        head {
+            meta charset="utf-8";
+            meta name="viewport" content="width=device-width, initial-scale=1.0";
+            link rel="stylesheet" href="style.css";
+            title { (title) }
+        }
+        body {
+            header {
+                h1 { (title) }
+            }
+            article { (maud::PreEscaped(article)) }
+        }
+    }
+    .into_string()
 }
 
 fn escape(s: &str, output: &mut String) {
@@ -38,7 +58,7 @@ fn escape(s: &str, output: &mut String) {
     }
 }
 
-fn make_html(input: &str) -> String {
+fn article(input: &str) -> String {
     let mut html = String::new();
     let mut code = None;
 
