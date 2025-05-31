@@ -3,7 +3,9 @@
     --bg: #202020;
     --bgcode: #282726;
     --kw: #f3886d;
-    --li: #e7c061;
+    --li: #cccc70;
+    --id: #d4be98;
+    --code: #d8a657;
     --border: 4px;
     --pad: 1.5rem;
 }
@@ -57,13 +59,8 @@ article p {
     }
 }
 
-a {
-    color: var(--li);
-    text-decoration: none;
-}
-
-a :hover {
-    text-decoration: underline;
+code {
+    color: var(--code);
 }
 
 code .kw {
@@ -75,9 +72,25 @@ code .li {
     color: var(--li);
 }
 
+code .id {
+    color: var(--id);
+}
+
 .inline {
     padding: 0 4px;
-    font-weight: bold;
     background: var(--bgcode);
     border-radius: var(--border);
+}
+
+a {
+    color: var(--li);
+    text-decoration: none;
+}
+
+a .inline {
+    color: var(--li);
+}
+
+a :hover {
+    text-decoration: underline;
 }

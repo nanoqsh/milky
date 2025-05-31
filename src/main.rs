@@ -191,6 +191,7 @@ fn highlight_rust(code: &str) -> Result<String, syn::Error> {
 enum Kind {
     Keyword,
     Literal,
+    Ident,
 }
 
 impl Kind {
@@ -198,6 +199,7 @@ impl Kind {
         match self {
             Self::Keyword => "kw",
             Self::Literal => "li",
+            Self::Ident => "id",
         }
     }
 }
@@ -214,12 +216,13 @@ fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
             TokenTree::Ident(ident) => {
                 let span = ident.span();
                 let s = &code[span.byte_range()];
-                if is_keyword(s) {
-                    tokens.push(Token {
-                        kind: Kind::Keyword,
-                        span,
-                    });
-                }
+                let kind = if is_keyword(s) {
+                    Kind::Keyword
+                } else {
+                    Kind::Ident
+                };
+
+                tokens.push(Token { kind, span });
             }
             TokenTree::Punct(_) => {}
             TokenTree::Literal(literal) => {
