@@ -1,6 +1,7 @@
 :root {
     --fg: #d4be98;
     --bg: #202020;
+    --hi: #e7c061;
     --bgcode: #282726;
     --kw: #f3886d;
     --li: #cccc70;
@@ -12,7 +13,7 @@
 
 ::selection {
     color: var(--bg);
-    background: var(--li);
+    background: var(--hi);
 }
 
 body {
