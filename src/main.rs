@@ -46,16 +46,9 @@ fn page(article: &str, title: &str) -> String {
 }
 
 fn escape(s: &str, output: &mut String) {
-    for c in s.chars() {
-        match c {
-            '&' => output.push_str("&amp;"),
-            '<' => output.push_str("&lt;"),
-            '>' => output.push_str("&gt;"),
-            '"' => output.push_str("&quot;"),
-            '\'' => output.push_str("&apos;"),
-            _ => output.push(c),
-        }
-    }
+    // don't reinvent the wheel,
+    // the `maud` already has an implementation of escaping
+    _ = maud::Escaper::new(output).write_str(s);
 }
 
 fn article(input: &str) -> String {
@@ -191,6 +184,8 @@ fn highlight_rust(code: &str) -> Result<String, syn::Error> {
 enum Kind {
     Keyword,
     Literal,
+    Typing,
+    Generic,
     Ident,
 }
 
@@ -199,6 +194,8 @@ impl Kind {
         match self {
             Self::Keyword => "kw",
             Self::Literal => "li",
+            Self::Typing => "ty",
+            Self::Generic => "ge",
             Self::Ident => "id",
         }
     }
@@ -215,11 +212,11 @@ fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
             TokenTree::Group(group) => parse(code, group.stream(), tokens),
             TokenTree::Ident(ident) => {
                 let span = ident.span();
-                let s = &code[span.byte_range()];
-                let kind = if is_keyword(s) {
-                    Kind::Keyword
-                } else {
-                    Kind::Ident
+                let kind = match &code[span.byte_range()] {
+                    s if is_keyword(s) => Kind::Keyword,
+                    s if is_generic(s) => Kind::Generic,
+                    s if is_typing(s) => Kind::Typing,
+                    _ => Kind::Ident,
                 };
 
                 tokens.push(Token { kind, span });
@@ -253,4 +250,24 @@ fn is_keyword(s: &str) -> bool {
     }
 
     KEYWORDS.with(|set| set.contains(s))
+}
+
+fn is_generic(s: &str) -> bool {
+    s.len() == 1 && s.starts_with(|c: char| c.is_ascii_uppercase())
+}
+
+fn is_typing(s: &str) -> bool {
+    if s.starts_with(|c: char| c.is_ascii_uppercase()) {
+        return true;
+    }
+
+    thread_local! {
+        static STDTYPES: HashSet<&'static str> = HashSet::from([
+            "str", "char", "bool",
+            "u8", "u16", "u32", "u64", "u128", "usize",
+            "i8", "i16", "i32", "i64", "i128", "isize",
+        ]);
+    }
+
+    STDTYPES.with(|set| set.contains(s))
 }

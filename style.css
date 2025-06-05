@@ -1,12 +1,14 @@
 :root {
     --fg: #d4be98;
     --bg: #202020;
-    --hi: #e7c061;
+    --hi: #d8a657;
     --bgcode: #282726;
-    --kw: #f3886d;
-    --li: #cccc70;
-    --id: #d4be98;
-    --code: #d8a657;
+    --kw: #ea6962;
+    --li: #a9b665;
+    --ty: #7daea3;
+    --ge: #89b482;
+    --id: #e5d1a4;
+    --code: #d4be98;
     --border: 4px;
     --pad: 1.5rem;
 }
@@ -71,6 +73,14 @@ code .kw {
 
 code .li {
     color: var(--li);
+}
+
+code .ty {
+    color: var(--ty);
+}
+
+code .ge {
+    color: var(--ge);
 }
 
 code .id {
