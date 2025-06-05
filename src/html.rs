@@ -5,15 +5,58 @@ use {
 };
 
 pub fn make(md: &str) -> String {
-    page(&article(md), "The article name")
+    page(
+        &article(md),
+        "The article name",
+        &[
+            Social {
+                href: "https://github.com/nanoqsh",
+                icon: Icon::GITHUB,
+                label: "GitHub",
+            },
+            Social {
+                href: "https://x.com/nanoqsh",
+                icon: Icon::X,
+                label: "Twitter",
+            },
+            Social {
+                href: "https://discord.com/users/589014218498375680",
+                icon: Icon::DISCORD,
+                label: "Discord",
+            },
+        ],
+    )
 }
 
-fn page(article: &str, title: &str) -> String {
+struct Icon(&'static str);
+
+impl Icon {
+    const DISCORD: Self = Self(include_str!("../icons/discord.svg"));
+    const GITHUB: Self = Self(include_str!("../icons/github.svg"));
+    const X: Self = Self(include_str!("../icons/x.svg"));
+}
+
+impl maud::Render for Icon {
+    fn render_to(&self, buffer: &mut String) {
+        buffer.push_str(self.0);
+    }
+}
+
+struct Social {
+    href: &'static str,
+    icon: Icon,
+    label: &'static str,
+}
+
+fn page(article: &str, title: &str, socials: &[Social]) -> String {
     maud::html! {
         (maud::DOCTYPE)
         head {
             meta charset="utf-8";
             meta name="viewport" content="width=device-width, initial-scale=1.0";
+            link rel="preconnect" href="https://fonts.googleapis.com";
+            link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
+            link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
             link rel="stylesheet" href="style.css";
             title { (title) }
         }
@@ -22,6 +65,15 @@ fn page(article: &str, title: &str) -> String {
                 h1 { (title) }
             }
             article { (maud::PreEscaped(article)) }
+            footer {
+                .socials {
+                    @for social in socials {
+                        a .icon href=(social.href) aria-label=(social.label) target="_blank" {
+                            (social.icon)
+                        }
+                    }
+                }
+            }
         }
     }
     .into_string()

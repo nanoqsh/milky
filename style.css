@@ -8,7 +8,7 @@
     --ty: #7daea3;
     --ge: #89b482;
     --id: #e5d1a4;
-    --code: #d4be98;
+    --code: #caaf7f;
     --border: 4px;
     --pad: 1.5rem;
 }
@@ -21,23 +21,23 @@
 body {
     margin: 0;
     padding: 0;
-    font-family: system-ui, sans-serif;
     background: var(--bg);
     color: var(--fg);
     display: flex;
     flex-direction: column;
     align-items: center;
+    font-family: 'Carlito', sans-serif;
+    font-size: 18px;
 }
 
 header,
 article {
     width: 100%;
     max-width: 870px;
-    padding: 2rem 1rem;
+    padding: 0 1rem;
 }
 
 header {
-    font-size: 1.2rem;
     font-weight: bold;
     width: 100%;
     text-align: center;
@@ -64,6 +64,8 @@ article p {
 
 code {
     color: var(--code);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
 }
 
 code .kw {
@@ -104,4 +106,31 @@ a .inline {
 
 a :hover {
     text-decoration: underline;
+}
+
+footer {
+    margin: var(--pad) 0;
+    padding-bottom: var(--pad);
+}
+
+footer .socials {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    align-items: center;
+}
+
+footer .icon {
+    padding: 1.5rem;
+}
+
+footer .icon svg {
+    width: 40px;
+    height: 40px;
+    fill: var(--fg);
+    transition: fill 0.2s ease;
+}
+
+footer .icon:hover svg {
+    fill: var(--li);
 }
