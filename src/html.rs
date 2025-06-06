@@ -61,11 +61,13 @@ fn page(article: &str, title: &str, socials: &[Social]) -> String {
             title { (title) }
         }
         body {
-            header {
+            style { (maud::PreEscaped(include_str!("../inline.css"))) }
+            script { (maud::PreEscaped(include_str!("../show.js"))) }
+            header .deferred.show {
                 h1 { (title) }
             }
-            article { (maud::PreEscaped(article)) }
-            footer {
+            article .deferred.show { (maud::PreEscaped(article)) }
+            footer .deferred.show {
                 .socials {
                     @for social in socials {
                         a .icon href=(social.href) aria-label=(social.label) target="_blank" {

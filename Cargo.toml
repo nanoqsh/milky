@@ -7,6 +7,7 @@ edition = "2024"
 maud = "0.27"
 pulldown-cmark = { version = "0.13", default-features = false }
 syn = { version = "2.0", default-features = false, features = ["parsing"] }
+time = "0.3"
 
 [dependencies.proc-macro2]
 version = "1.0"
