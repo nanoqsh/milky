@@ -61,8 +61,8 @@ fn page(article: &str, title: &str, socials: &[Social]) -> String {
             title { (title) }
         }
         body {
-            style { (maud::PreEscaped(include_str!("../inline.css"))) }
-            script { (maud::PreEscaped(include_str!("../show.js"))) }
+            style { (maud::PreEscaped(include_str!("../assets/inline.css"))) }
+            script { (maud::PreEscaped(include_str!("../assets/show.js"))) }
             header .deferred.show {
                 h1 { (title) }
             }

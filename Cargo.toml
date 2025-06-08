@@ -6,8 +6,10 @@ edition = "2024"
 [dependencies]
 maud = "0.27"
 pulldown-cmark = { version = "0.13", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
 syn = { version = "2.0", default-features = false, features = ["parsing"] }
 time = "0.3"
+toml = "0.8"
 
 [dependencies.proc-macro2]
 version = "1.0"
