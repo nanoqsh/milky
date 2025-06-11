@@ -18,9 +18,12 @@
     background: var(--hi);
 }
 
-body {
+* {
     margin: 0;
     padding: 0;
+}
+
+body {
     background: var(--bg);
     color: var(--fg);
     display: flex;
@@ -28,6 +31,27 @@ body {
     align-items: center;
     font-family: 'Carlito', sans-serif;
     font-size: 18px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin: 1rem 0;
+}
+
+h1 {
+    font-size: 3rem;
+}
+
+h2 {
+    font-size: 2rem;
+}
+
+h3 {
+    font-size: 1.5rem;
 }
 
 header,
@@ -41,6 +65,12 @@ header {
     font-weight: bold;
     width: 100%;
     text-align: center;
+}
+
+header .date {
+    font-size: 1.3rem;
+    text-align: left;
+    color: var(--code);
 }
 
 article pre {

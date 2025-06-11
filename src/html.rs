@@ -65,6 +65,7 @@ fn page(article: &str, title: &str, socials: &[Social]) -> String {
             script { (maud::PreEscaped(include_str!("../assets/show.js"))) }
             header .deferred.show {
                 h1 { (title) }
+                .date { ("12 May 2025") }
             }
             article .deferred.show { (maud::PreEscaped(article)) }
             footer .deferred.show {

@@ -41,12 +41,12 @@ fn run() -> Result<(), Error> {
     Ok(())
 }
 
+#[derive(Deserialize)]
+struct Article {}
+
 struct Conf {
     articles: Vec<(String, Article)>,
 }
-
-#[derive(Deserialize)]
-struct Article {}
 
 fn read_conf() -> Result<Conf, Error> {
     #[derive(Deserialize)]
