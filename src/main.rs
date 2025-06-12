@@ -1,9 +1,10 @@
 mod date;
 mod html;
+mod icon;
 mod lang;
 
 use {
-    crate::date::Date,
+    crate::{date::Date, icon::Icon},
     serde::{Deserialize, Serialize},
     std::{
         collections::HashMap,
@@ -42,7 +43,7 @@ fn run() -> Result<(), Error> {
         let md = read(&article_path)?;
 
         let date = date::now();
-        let page = html::make(&md, &article.title, date);
+        let page = html::make(&md, &article.title, date, &conf.social);
 
         let page_path = format!("{dist_path}/{name}.html");
         write(&page_path, &page)?;
@@ -65,14 +66,22 @@ struct Article {
     title: String,
 }
 
+#[derive(Deserialize)]
+struct Social {
+    href: String,
+    icon: Icon,
+}
+
 struct Conf {
     articles: Vec<(String, Article)>,
+    social: Vec<Social>,
 }
 
 fn read_conf() -> Result<Conf, Error> {
     #[derive(Deserialize)]
     struct Scheme {
         article: HashMap<String, Article>,
+        social: Vec<Social>,
     }
 
     let conf_path = "Milky.toml";
@@ -84,7 +93,10 @@ fn read_conf() -> Result<Conf, Error> {
     let mut articles: Vec<_> = scheme.article.into_iter().collect();
     articles.sort_by(|(a, _), (b, _)| a.cmp(b));
 
-    Ok(Conf { articles })
+    Ok(Conf {
+        articles,
+        social: scheme.social,
+    })
 }
 
 #[derive(Serialize, Deserialize)]

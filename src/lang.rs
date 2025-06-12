@@ -1,10 +1,9 @@
-use {serde::Deserialize, time::Month};
+use time::Month;
 
-#[derive(Clone, Copy, Deserialize)]
+#[derive(Clone, Copy)]
 pub enum Lang {
-    #[serde(rename = "ru")]
+    #[expect(dead_code)]
     Ru,
-    #[serde(rename = "en")]
     En,
 }
 

@@ -1,56 +1,21 @@
 use {
-    crate::{date::Date, lang::Lang},
+    crate::{Social, date::Date, lang::Lang},
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
     std::{collections::HashSet, fmt::Write},
 };
 
-pub fn make(md: &str, title: &str, date: Date) -> String {
-    page(
-        &article(md),
-        title,
-        date,
-        &[
-            Social {
-                href: "https://github.com/nanoqsh",
-                icon: Icon::GITHUB,
-                label: "GitHub",
-            },
-            Social {
-                href: "https://x.com/nanoqsh",
-                icon: Icon::X,
-                label: "Twitter",
-            },
-            Social {
-                href: "https://discord.com/users/589014218498375680",
-                icon: Icon::DISCORD,
-                label: "Discord",
-            },
-        ],
-    )
+pub fn make<'soc, S>(md: &str, title: &str, date: Date, socials: S) -> String
+where
+    S: IntoIterator<Item = &'soc Social>,
+{
+    page(&article(md), title, date, socials)
 }
 
-struct Icon(&'static str);
-
-impl Icon {
-    const DISCORD: Self = Self(include_str!("../icons/discord.svg"));
-    const GITHUB: Self = Self(include_str!("../icons/github.svg"));
-    const X: Self = Self(include_str!("../icons/x.svg"));
-}
-
-impl maud::Render for Icon {
-    fn render_to(&self, buffer: &mut String) {
-        buffer.push_str(self.0);
-    }
-}
-
-struct Social {
-    href: &'static str,
-    icon: Icon,
-    label: &'static str,
-}
-
-fn page(article: &str, title: &str, date: Date, socials: &[Social]) -> String {
+fn page<'soc, S>(article: &str, title: &str, date: Date, socials: S) -> String
+where
+    S: IntoIterator<Item = &'soc Social>,
+{
     maud::html! {
         (maud::DOCTYPE)
         head {
@@ -73,7 +38,7 @@ fn page(article: &str, title: &str, date: Date, socials: &[Social]) -> String {
             footer .deferred.show {
                 .socials {
                     @for social in socials {
-                        a .icon href=(social.href) aria-label=(social.label) target="_blank" {
+                        a .icon href=(social.href) aria-label=(social.icon.label()) target="_blank" {
                             (social.icon)
                         }
                     }
