@@ -1,8 +1,4 @@
-use {
-    serde::Deserialize,
-    std::fmt::Write,
-    time::{Date, Month},
-};
+use {serde::Deserialize, time::Month};
 
 #[derive(Clone, Copy, Deserialize)]
 pub enum Lang {
@@ -12,26 +8,7 @@ pub enum Lang {
     En,
 }
 
-pub fn render_date(date: Date, lang: Lang) -> impl maud::Render {
-    struct Render(Date, Lang);
-
-    impl maud::Render for Render {
-        fn render_to(&self, buffer: &mut String) {
-            let Self(date, lang) = self;
-            _ = write!(
-                buffer,
-                "{} {} {}",
-                date.day(),
-                month_short_name(date.month(), *lang),
-                date.year()
-            );
-        }
-    }
-
-    Render(date, lang)
-}
-
-fn month_short_name(month: Month, lang: Lang) -> &'static str {
+pub fn month_short_name(month: Month, lang: Lang) -> &'static str {
     match lang {
         Lang::Ru => match month {
             Month::January => "янв",

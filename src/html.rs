@@ -1,17 +1,15 @@
 use {
-    crate::{
-        date,
-        lang::{self, Lang},
-    },
+    crate::{date::Date, lang::Lang},
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
     std::{collections::HashSet, fmt::Write},
 };
 
-pub fn make(md: &str) -> String {
+pub fn make(md: &str, date: Date) -> String {
     page(
         &article(md),
         "The article name",
+        date,
         &[
             Social {
                 href: "https://github.com/nanoqsh",
@@ -52,7 +50,7 @@ struct Social {
     label: &'static str,
 }
 
-fn page(article: &str, title: &str, socials: &[Social]) -> String {
+fn page(article: &str, title: &str, date: Date, socials: &[Social]) -> String {
     maud::html! {
         (maud::DOCTYPE)
         head {
@@ -69,7 +67,7 @@ fn page(article: &str, title: &str, socials: &[Social]) -> String {
             script { (maud::PreEscaped(include_str!("../assets/show.js"))) }
             header .deferred.show {
                 h1 { (title) }
-                .date { (lang::render_date(date::now(), Lang::En)) }
+                .date { (date.render(Lang::En)) }
             }
             article .deferred.show { (maud::PreEscaped(article)) }
             footer .deferred.show {
