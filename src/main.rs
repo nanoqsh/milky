@@ -1,4 +1,6 @@
+mod date;
 mod html;
+mod lang;
 
 use {
     serde::Deserialize,

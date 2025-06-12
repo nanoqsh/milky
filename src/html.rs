@@ -1,4 +1,8 @@
 use {
+    crate::{
+        date,
+        lang::{self, Lang},
+    },
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
     std::{collections::HashSet, fmt::Write},
@@ -65,7 +69,7 @@ fn page(article: &str, title: &str, socials: &[Social]) -> String {
             script { (maud::PreEscaped(include_str!("../assets/show.js"))) }
             header .deferred.show {
                 h1 { (title) }
-                .date { ("12 May 2025") }
+                .date { (lang::render_date(date::now(), Lang::En)) }
             }
             article .deferred.show { (maud::PreEscaped(article)) }
             footer .deferred.show {
