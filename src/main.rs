@@ -29,10 +29,10 @@ fn run() -> Result<(), Error> {
     create_dir_all(dist_path)?;
 
     let mut meta = read_meta()?;
+    let rerender = meta.version != Meta::VERSION;
 
-    for (name, _) in conf.articles {
-        if meta.articles.contains_key(&name) && meta.version == Meta::VERSION {
-            println!("skip {name}.html");
+    for (name, article) in conf.articles {
+        if !rerender && meta.articles.contains_key(&name) {
             continue;
         }
 
@@ -42,7 +42,7 @@ fn run() -> Result<(), Error> {
         let md = read(&article_path)?;
 
         let date = date::now();
-        let page = html::make(&md, date);
+        let page = html::make(&md, &article.title, date);
 
         let page_path = format!("{dist_path}/{name}.html");
         write(&page_path, &page)?;
@@ -61,7 +61,9 @@ fn run() -> Result<(), Error> {
 }
 
 #[derive(Deserialize)]
-struct Article {}
+struct Article {
+    title: String,
+}
 
 struct Conf {
     articles: Vec<(String, Article)>,

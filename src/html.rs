@@ -5,10 +5,10 @@ use {
     std::{collections::HashSet, fmt::Write},
 };
 
-pub fn make(md: &str, date: Date) -> String {
+pub fn make(md: &str, title: &str, date: Date) -> String {
     page(
         &article(md),
-        "The article name",
+        title,
         date,
         &[
             Social {
