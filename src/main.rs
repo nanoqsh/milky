@@ -53,7 +53,7 @@ fn run() -> Result<(), Error> {
     }
 
     let style_path = "dist/style.css";
-    if !exists(style_path)? {
+    if !exists(style_path)? || rerender {
         println!("save style.css");
         write(style_path, include_str!("../assets/style.css"))?;
     }
@@ -112,7 +112,7 @@ struct Meta {
 }
 
 impl Meta {
-    const VERSION: u32 = 0;
+    const VERSION: u32 = 1;
 
     fn new() -> Self {
         Self {
