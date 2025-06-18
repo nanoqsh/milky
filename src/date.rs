@@ -48,6 +48,7 @@ mod conv {
         serde::{Deserializer, Serializer, de::Error},
     };
 
+    #[allow(clippy::trivially_copy_pass_by_ref, reason = "serde derive API")]
     pub fn serialize<S>(&month: &Month, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

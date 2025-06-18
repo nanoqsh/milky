@@ -13,3 +13,7 @@ fn primes() -> impl Iterator<Item = u64> {
     })
 }
 ```
+
+Post some image
+
+![](post.jpg)

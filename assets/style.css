@@ -9,8 +9,9 @@
     --ge: #89b482;
     --id: #e5d1a4;
     --code: #caaf7f;
-    --border: 4px;
+    --border: 6px;
     --pad: 1.5rem;
+    --width: 870px;
 }
 
 ::selection {
@@ -57,7 +58,7 @@ h3 {
 header,
 article {
     width: 100%;
-    max-width: 870px;
+    max-width: var(--width);
     padding: 0 1rem;
 }
 
@@ -85,11 +86,16 @@ article p {
     line-height: 1.5rem;
 }
 
-@media (max-width: 870px) {
+@media (max-width: var(--width)) {
     article p {
         padding-left: 6px;
         padding-right: 6px;
     }
+}
+
+article img {
+    max-width: var(--width);
+    border-radius: var(--border);
 }
 
 code {

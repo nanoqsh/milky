@@ -4,7 +4,7 @@ mod icon;
 mod lang;
 
 use {
-    crate::{date::Date, icon::Icon},
+    crate::{date::Date, html::Html, icon::Icon},
     serde::{Deserialize, Serialize},
     std::{
         collections::{HashMap, hash_map::Entry},
@@ -31,6 +31,9 @@ fn run() -> Result<(), Error> {
 
     let mut meta = read_meta()?;
     let rerender = meta.version != Meta::VERSION;
+    if rerender {
+        meta.version = Meta::VERSION;
+    }
 
     for (name, article) in conf.articles {
         let article_meta = meta.articles.entry(name.clone());
@@ -46,10 +49,16 @@ fn run() -> Result<(), Error> {
         let md = read(&article_path)?;
 
         let article_meta = article_meta.or_insert_with(|| ArticleMeta { date: date::now() });
-        let page = html::make(&md, &article.title, article_meta.date, &conf.social);
+        let Html { page, deps } = html::make(&md, &article.title, article_meta.date, &conf.social);
 
         let page_path = format!("{dist_path}/{name}.html");
         write(&page_path, &page)?;
+
+        for dep in deps {
+            let to = format!("{dist_path}/{dep}");
+            println!("save {to}");
+            copy(&dep, &to)?;
+        }
     }
 
     let style_path = "dist/style.css";
@@ -112,7 +121,7 @@ struct Meta {
 }
 
 impl Meta {
-    const VERSION: u32 = 1;
+    const VERSION: u32 = 0;
 
     fn new() -> Self {
         Self {
@@ -163,4 +172,9 @@ fn create_dir_all(path: &str) -> Result<(), Error> {
 
 fn exists(path: &str) -> Result<bool, Error> {
     fs::exists(path).inspect_err(|_| eprintln!("failed to check path {path}"))
+}
+
+fn copy(from: &str, to: &str) -> Result<(), Error> {
+    fs::copy(from, to).inspect_err(|_| eprintln!("failed to copy from {from} to {to}"))?;
+    Ok(())
 }

@@ -1,15 +1,22 @@
 use {
     crate::{Social, date::Date, lang::Lang},
     proc_macro2::{Span, TokenStream, TokenTree},
-    pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
+    pulldown_cmark::{CodeBlockKind, CowStr, Event, Parser, Tag, TagEnd},
     std::{collections::HashSet, fmt::Write},
 };
 
-pub fn make<'soc, S>(md: &str, title: &str, date: Date, socials: S) -> String
+pub struct Html<'src> {
+    pub page: String,
+    pub deps: Vec<CowStr<'src>>,
+}
+
+pub fn make<'src, 'soc, S>(md: &'src str, title: &str, date: Date, socials: S) -> Html<'src>
 where
     S: IntoIterator<Item = &'soc Social>,
 {
-    page(&article(md), title, date, socials)
+    let mut deps = vec![];
+    let page = page(&article(md, &mut deps), title, date, socials);
+    Html { page, deps }
 }
 
 fn page<'soc, S>(article: &str, title: &str, date: Date, socials: S) -> String
@@ -21,9 +28,9 @@ where
         head {
             meta charset="utf-8";
             meta name="viewport" content="width=device-width, initial-scale=1.0";
-            link rel="preconnect" href="https://fonts.googleapis.com";
-            link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
-            link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
+            // link rel="preconnect" href="https://fonts.googleapis.com";
+            // link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
+            // link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
             link rel="stylesheet" href="style.css";
             title { (title) }
         }
@@ -55,7 +62,7 @@ fn escape(s: &str, output: &mut String) {
     _ = maud::Escaper::new(output).write_str(s);
 }
 
-fn article(input: &str) -> String {
+fn article<'src>(input: &'src str, deps: &mut Vec<CowStr<'src>>) -> String {
     let mut html = String::new();
     let mut code = None;
 
@@ -93,7 +100,10 @@ fn article(input: &str) -> String {
             Event::Start(Tag::Link { dest_url, .. }) => {
                 _ = write!(&mut html, "<a href=\"{dest_url}\" target=\"_blank\">");
             }
-            Event::Start(Tag::Image { .. }) => todo!(),
+            Event::Start(Tag::Image { dest_url, .. }) => {
+                _ = write!(&mut html, "<img src=\"{dest_url}\">");
+                deps.push(dest_url);
+            }
             Event::Start(Tag::MetadataBlock(_)) => todo!(),
             Event::End(TagEnd::Paragraph) => html.push_str("</p>"),
             Event::End(TagEnd::Heading(level)) => _ = write!(&mut html, "</{level}>"),
@@ -132,7 +142,7 @@ fn article(input: &str) -> String {
             Event::End(TagEnd::Superscript) => todo!(),
             Event::End(TagEnd::Subscript) => todo!(),
             Event::End(TagEnd::Link) => html.push_str("</a>"),
-            Event::End(TagEnd::Image) => todo!(),
+            Event::End(TagEnd::Image) => html.push_str("</img>"),
             Event::End(TagEnd::MetadataBlock(_)) => todo!(),
             Event::Text(s) => {
                 if let Some((start, _)) = code {
@@ -152,7 +162,7 @@ fn article(input: &str) -> String {
             Event::Html(s) => html.push_str(&s),
             Event::InlineHtml(s) => html.push_str(&s),
             Event::FootnoteReference(_) => todo!(),
-            Event::SoftBreak => todo!(),
+            Event::SoftBreak => html.push_str("<br>"),
             Event::HardBreak => todo!(),
             Event::Rule => todo!(),
             Event::TaskListMarker(_) => todo!(),
