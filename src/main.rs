@@ -7,7 +7,7 @@ use {
     crate::{date::Date, icon::Icon},
     serde::{Deserialize, Serialize},
     std::{
-        collections::HashMap,
+        collections::{HashMap, hash_map::Entry},
         fs,
         io::{Error, ErrorKind},
         process::ExitCode,
@@ -33,8 +33,11 @@ fn run() -> Result<(), Error> {
     let rerender = meta.version != Meta::VERSION;
 
     for (name, article) in conf.articles {
-        if !rerender && meta.articles.contains_key(&name) {
-            continue;
+        let article_meta = meta.articles.entry(name.clone());
+        if let Entry::Occupied(_) = &article_meta {
+            if !rerender {
+                continue;
+            }
         }
 
         println!("generate {name}.html");
@@ -42,13 +45,11 @@ fn run() -> Result<(), Error> {
         let article_path = format!("{name}.md");
         let md = read(&article_path)?;
 
-        let date = date::now();
-        let page = html::make(&md, &article.title, date, &conf.social);
+        let article_meta = article_meta.or_insert_with(|| ArticleMeta { date: date::now() });
+        let page = html::make(&md, &article.title, article_meta.date, &conf.social);
 
         let page_path = format!("{dist_path}/{name}.html");
         write(&page_path, &page)?;
-
-        meta.articles.insert(name, ArticleMeta { date });
     }
 
     let style_path = "dist/style.css";
