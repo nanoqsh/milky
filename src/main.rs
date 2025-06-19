@@ -4,10 +4,10 @@ mod icon;
 mod lang;
 
 use {
-    crate::{date::Date, html::Html, icon::Icon, lang::Lang},
+    crate::{date::Date, html::Make, icon::Icon, lang::Lang},
     serde::{Deserialize, Serialize},
     std::{
-        collections::{HashMap, hash_map::Entry},
+        collections::{HashMap, HashSet, hash_map::Entry},
         fs,
         io::{Error, ErrorKind},
         process::ExitCode,
@@ -25,32 +25,35 @@ fn main() -> ExitCode {
 
 fn run() -> Result<(), Error> {
     let conf = read_conf()?;
-
-    let dist_path = "dist";
-    create_dir_all(dist_path)?;
-
-    let mut gener = Generator::new(dist_path, &conf.social)?;
+    let mut gener = Generator::new(&conf.social)?;
     for (name, article) in conf.articles {
-        let generate = gener.generate(&name, &article);
+        let mut generate = gener.generate(&name, &article);
         for lang in Lang::ENUM {
             generate(lang)?;
         }
     }
 
-    gener.save_style()?;
-    gener.save_meta()?;
+    gener.save()?;
     Ok(())
 }
 
 struct Generator<'soc> {
     meta: Meta,
     rerender: bool,
-    dist_path: &'static str,
     social: &'soc [Social],
+    deps: HashSet<Box<str>>,
 }
 
 impl<'soc> Generator<'soc> {
-    fn new(dist_path: &'static str, social: &'soc [Social]) -> Result<Self, Error> {
+    const DIST_PATH: &'static str = "dist";
+
+    fn new(social: &'soc [Social]) -> Result<Self, Error> {
+        create_dir_all(Self::DIST_PATH)?;
+
+        for lang in Lang::ENUM {
+            create_dir_all(&format!("{}/{lang}", Self::DIST_PATH))?;
+        }
+
         let mut meta = Meta::read()?;
         let rerender = meta.version != Meta::VERSION;
         if rerender {
@@ -60,56 +63,66 @@ impl<'soc> Generator<'soc> {
         Ok(Self {
             meta,
             rerender,
-            dist_path,
             social,
+            deps: HashSet::new(),
         })
     }
 
-    fn generate(&mut self, name: &str, article: &Article) -> impl Fn(Lang) -> Result<(), Error> {
+    fn generate(&mut self, name: &str, article: &Article) -> impl FnMut(Lang) -> Result<(), Error> {
         let article_meta = self.meta.articles.entry(name.to_owned());
         let skip = matches!(article_meta, Entry::Occupied(_)) && !self.rerender;
 
         let article_meta = article_meta.or_insert_with(|| ArticleMeta { date: date::now() });
-        let dist_path = self.dist_path;
         let social = self.social;
+        let deps = &mut self.deps;
 
-        move |_lang| {
+        move |lang| {
             if skip {
                 return Ok(());
             }
 
-            println!("generate {name}.html");
+            let article_path = format!("{lang}/{name}.md");
+            let page_path = format!("{}/{lang}/{name}.html", Self::DIST_PATH);
+            println!("generate {page_path}");
 
-            let article_path = format!("{name}.md");
-            let md = read(&article_path)?;
+            let md = match read(&article_path) {
+                Read::Content(s) => s,
+                Read::NotFound => {
+                    eprintln!("{article_path} not found!");
+                    return Ok(());
+                }
+                Read::Failed(e) => return Err(e),
+            };
 
-            let Html { page, deps } = html::make(&md, &article.title, article_meta.date, social);
+            let page = html::make(Make {
+                md: &md,
+                title: &article.title,
+                date: article_meta.date,
+                social,
+                deps,
+            });
 
-            let page_path = format!("{dist_path}/{name}.html",);
             write(&page_path, &page)?;
-
-            for dep in deps {
-                let to = format!("{dist_path}/{dep}");
-                println!("save {to}");
-                copy(&dep, &to)?;
-            }
 
             Ok(())
         }
     }
 
-    fn save_style(&self) -> Result<(), Error> {
+    fn save(self) -> Result<(), Error> {
+        for dep in self.deps {
+            let to = format!("{}/{dep}", Self::DIST_PATH);
+            println!("save {to}");
+            copy(&dep, &to)?;
+        }
+
         let style_path = "dist/style.css";
         if self.rerender || !exists(style_path)? {
             println!("save style.css");
             write(style_path, include_str!("../assets/style.css"))?;
         }
 
+        self.meta.write()?;
         Ok(())
-    }
-
-    fn save_meta(self) -> Result<(), Error> {
-        self.meta.write()
     }
 }
 
@@ -120,24 +133,24 @@ struct Article {
 
 #[derive(Deserialize)]
 struct Social {
-    href: String,
+    href: Box<str>,
     icon: Icon,
 }
 
 struct Conf {
-    articles: Vec<(String, Article)>,
+    articles: Vec<(Box<str>, Article)>,
     social: Vec<Social>,
 }
 
 fn read_conf() -> Result<Conf, Error> {
     #[derive(Deserialize)]
     struct Scheme {
-        article: HashMap<String, Article>,
+        article: HashMap<Box<str>, Article>,
         social: Vec<Social>,
     }
 
     let conf_path = "Milky.toml";
-    let conf = read(conf_path)?;
+    let conf = read(conf_path).into_result()?;
     let scheme: Scheme = toml::from_str(&conf)
         .inspect_err(|_| eprintln!("failed to deserialize file {conf_path}"))
         .map_err(Error::other)?;
@@ -163,7 +176,7 @@ struct Meta {
 }
 
 impl Meta {
-    const VERSION: u32 = 1;
+    const VERSION: u32 = 0;
 
     fn new() -> Self {
         Self {
@@ -175,12 +188,12 @@ impl Meta {
     fn read() -> Result<Self, Error> {
         let meta_path = "Meta.toml";
         let meta = match read(meta_path) {
-            Ok(meta) => meta,
-            Err(e) if e.kind() == ErrorKind::NotFound => {
+            Read::Content(s) => s,
+            Read::NotFound => {
                 eprintln!("create the Meta.toml");
                 return Ok(Self::new());
             }
-            Err(e) => return Err(e),
+            Read::Failed(e) => return Err(e),
         };
 
         let meta = toml::from_str(&meta)
@@ -200,8 +213,31 @@ impl Meta {
     }
 }
 
-fn read(path: &str) -> Result<String, Error> {
-    fs::read_to_string(path).inspect_err(|_| eprintln!("failed to read file {path}"))
+enum Read {
+    Content(String),
+    NotFound,
+    Failed(Error),
+}
+
+impl Read {
+    fn into_result(self) -> Result<String, Error> {
+        match self {
+            Self::Content(s) => Ok(s),
+            Self::NotFound => Err(ErrorKind::NotFound.into()),
+            Self::Failed(e) => Err(e),
+        }
+    }
+}
+
+fn read(path: &str) -> Read {
+    match fs::read_to_string(path) {
+        Ok(s) => Read::Content(s),
+        Err(e) if e.kind() == ErrorKind::NotFound => Read::NotFound,
+        Err(e) => {
+            eprintln!("failed to read file {path}");
+            Read::Failed(e)
+        }
+    }
 }
 
 fn write(path: &str, contents: &str) -> Result<(), Error> {

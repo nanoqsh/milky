@@ -1,22 +1,31 @@
 use {
     crate::{Social, date::Date, lang::Lang},
     proc_macro2::{Span, TokenStream, TokenTree},
-    pulldown_cmark::{CodeBlockKind, CowStr, Event, Parser, Tag, TagEnd},
+    pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
     std::{collections::HashSet, fmt::Write},
 };
 
-pub struct Html<'src> {
-    pub page: String,
-    pub deps: Vec<CowStr<'src>>,
+pub struct Make<'art> {
+    pub md: &'art str,
+    pub title: &'art str,
+    pub date: Date,
+    pub social: &'art [Social],
+    pub deps: &'art mut HashSet<Box<str>>,
 }
 
-pub fn make<'src>(md: &'src str, title: &str, date: Date, socials: &[Social]) -> Html<'src> {
-    let mut deps = vec![];
-    let page = page(&article(md, &mut deps), title, date, socials);
-    Html { page, deps }
+pub fn make(make: Make<'_>) -> String {
+    let Make {
+        md,
+        title,
+        date,
+        social,
+        deps,
+    } = make;
+
+    page(&article(md, deps), title, date, social)
 }
 
-fn page(article: &str, title: &str, date: Date, socials: &[Social]) -> String {
+fn page(article: &str, title: &str, date: Date, social: &[Social]) -> String {
     maud::html! {
         (maud::DOCTYPE)
         head {
@@ -38,9 +47,9 @@ fn page(article: &str, title: &str, date: Date, socials: &[Social]) -> String {
             article .deferred.show { (maud::PreEscaped(article)) }
             footer .deferred.show {
                 .socials {
-                    @for social in socials {
-                        a .icon href=(social.href) aria-label=(social.icon.label()) target="_blank" {
-                            (social.icon)
+                    @for s in social {
+                        a .icon href=(s.href) aria-label=(s.icon.label()) target="_blank" {
+                            (s.icon)
                         }
                     }
                 }
@@ -56,7 +65,7 @@ fn escape(s: &str, output: &mut String) {
     _ = maud::Escaper::new(output).write_str(s);
 }
 
-fn article<'src>(input: &'src str, deps: &mut Vec<CowStr<'src>>) -> String {
+fn article(input: &str, deps: &mut HashSet<Box<str>>) -> String {
     let mut html = String::new();
     let mut code = None;
 
@@ -96,7 +105,7 @@ fn article<'src>(input: &'src str, deps: &mut Vec<CowStr<'src>>) -> String {
             }
             Event::Start(Tag::Image { dest_url, .. }) => {
                 _ = write!(&mut html, "<img src=\"{dest_url}\">");
-                deps.push(dest_url);
+                deps.insert(Box::from(&*dest_url));
             }
             Event::Start(Tag::MetadataBlock(_)) => todo!(),
             Event::End(TagEnd::Paragraph) => html.push_str("</p>"),
