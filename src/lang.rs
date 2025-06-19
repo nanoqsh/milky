@@ -1,10 +1,26 @@
-use time::Month;
+use {std::fmt, time::Month};
 
 #[derive(Clone, Copy)]
 pub enum Lang {
-    #[expect(dead_code)]
     Ru,
     En,
+}
+
+impl Lang {
+    pub const ENUM: [Self; 2] = [Self::Ru, Self::En];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Ru => "ru",
+            Self::En => "en",
+        }
+    }
+}
+
+impl fmt::Display for Lang {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 pub fn month_short_name(month: Month, lang: Lang) -> &'static str {

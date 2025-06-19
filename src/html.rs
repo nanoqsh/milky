@@ -10,19 +10,13 @@ pub struct Html<'src> {
     pub deps: Vec<CowStr<'src>>,
 }
 
-pub fn make<'src, 'soc, S>(md: &'src str, title: &str, date: Date, socials: S) -> Html<'src>
-where
-    S: IntoIterator<Item = &'soc Social>,
-{
+pub fn make<'src>(md: &'src str, title: &str, date: Date, socials: &[Social]) -> Html<'src> {
     let mut deps = vec![];
     let page = page(&article(md, &mut deps), title, date, socials);
     Html { page, deps }
 }
 
-fn page<'soc, S>(article: &str, title: &str, date: Date, socials: S) -> String
-where
-    S: IntoIterator<Item = &'soc Social>,
-{
+fn page(article: &str, title: &str, date: Date, socials: &[Social]) -> String {
     maud::html! {
         (maud::DOCTYPE)
         head {

@@ -29,17 +29,44 @@ fn run() -> Result<(), Error> {
     let dist_path = "dist";
     create_dir_all(dist_path)?;
 
-    let mut meta = read_meta()?;
-    let rerender = meta.version != Meta::VERSION;
-    if rerender {
-        meta.version = Meta::VERSION;
+    let mut generator = Generator::new(dist_path, &conf.social)?;
+    for (name, article) in conf.articles {
+        generator.generate(name, &article)?;
     }
 
-    for (name, article) in conf.articles {
-        let article_meta = meta.articles.entry(name.clone());
+    generator.save_style()?;
+    generator.save_meta()?;
+    Ok(())
+}
+
+struct Generator<'soc> {
+    meta: Meta,
+    rerender: bool,
+    dist_path: &'static str,
+    social: &'soc [Social],
+}
+
+impl<'soc> Generator<'soc> {
+    fn new(dist_path: &'static str, social: &'soc [Social]) -> Result<Self, Error> {
+        let mut meta = Meta::read()?;
+        let rerender = meta.version != Meta::VERSION;
+        if rerender {
+            meta.version = Meta::VERSION;
+        }
+
+        Ok(Self {
+            meta,
+            rerender,
+            dist_path,
+            social,
+        })
+    }
+
+    fn generate(&mut self, name: String, article: &Article) -> Result<(), Error> {
+        let article_meta = self.meta.articles.entry(name.clone());
         if let Entry::Occupied(_) = &article_meta {
-            if !rerender {
-                continue;
+            if !self.rerender {
+                return Ok(());
             }
         }
 
@@ -49,26 +76,33 @@ fn run() -> Result<(), Error> {
         let md = read(&article_path)?;
 
         let article_meta = article_meta.or_insert_with(|| ArticleMeta { date: date::now() });
-        let Html { page, deps } = html::make(&md, &article.title, article_meta.date, &conf.social);
+        let Html { page, deps } = html::make(&md, &article.title, article_meta.date, self.social);
 
-        let page_path = format!("{dist_path}/{name}.html");
+        let page_path = format!("{}/{name}.html", self.dist_path);
         write(&page_path, &page)?;
 
         for dep in deps {
-            let to = format!("{dist_path}/{dep}");
+            let to = format!("{}/{dep}", self.dist_path);
             println!("save {to}");
             copy(&dep, &to)?;
         }
+
+        Ok(())
     }
 
-    let style_path = "dist/style.css";
-    if !exists(style_path)? || rerender {
-        println!("save style.css");
-        write(style_path, include_str!("../assets/style.css"))?;
+    fn save_style(&self) -> Result<(), Error> {
+        let style_path = "dist/style.css";
+        if self.rerender || !exists(style_path)? {
+            println!("save style.css");
+            write(style_path, include_str!("../assets/style.css"))?;
+        }
+
+        Ok(())
     }
 
-    write_meta(&meta)?;
-    Ok(())
+    fn save_meta(self) -> Result<(), Error> {
+        self.meta.write()
+    }
 }
 
 #[derive(Deserialize)]
@@ -129,33 +163,33 @@ impl Meta {
             articles: HashMap::new(),
         }
     }
-}
 
-fn read_meta() -> Result<Meta, Error> {
-    let meta_path = "Meta.toml";
-    let meta = match read(meta_path) {
-        Ok(meta) => meta,
-        Err(e) if e.kind() == ErrorKind::NotFound => {
-            eprintln!("create the Meta.toml");
-            return Ok(Meta::new());
-        }
-        Err(e) => return Err(e),
-    };
+    fn read() -> Result<Self, Error> {
+        let meta_path = "Meta.toml";
+        let meta = match read(meta_path) {
+            Ok(meta) => meta,
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                eprintln!("create the Meta.toml");
+                return Ok(Self::new());
+            }
+            Err(e) => return Err(e),
+        };
 
-    let meta = toml::from_str(&meta)
-        .inspect_err(|_| eprintln!("failed to deserialize file {meta_path}"))
-        .map_err(Error::other)?;
+        let meta = toml::from_str(&meta)
+            .inspect_err(|_| eprintln!("failed to deserialize file {meta_path}"))
+            .map_err(Error::other)?;
 
-    Ok(meta)
-}
+        Ok(meta)
+    }
 
-fn write_meta(meta: &Meta) -> Result<(), Error> {
-    let meta = toml::to_string(meta)
-        .inspect_err(|_| eprintln!("failed to serialize meta info"))
-        .map_err(Error::other)?;
+    fn write(self) -> Result<(), Error> {
+        let meta = toml::to_string(&self)
+            .inspect_err(|_| eprintln!("failed to serialize meta info"))
+            .map_err(Error::other)?;
 
-    write("Meta.toml", &meta)?;
-    Ok(())
+        write("Meta.toml", &meta)?;
+        Ok(())
+    }
 }
 
 fn read(path: &str) -> Result<String, Error> {
