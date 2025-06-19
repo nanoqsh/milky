@@ -22,19 +22,19 @@ pub fn make(make: Make<'_>) -> String {
         deps,
     } = make;
 
-    page(&article(md, deps), title, date, social)
+    page(&article(md, deps), title, date, social).into_string()
 }
 
-fn page(article: &str, title: &str, date: Date, social: &[Social]) -> String {
+fn page(article: &str, title: &str, date: Date, social: &[Social]) -> maud::Markup {
     maud::html! {
         (maud::DOCTYPE)
         head {
             meta charset="utf-8";
             meta name="viewport" content="width=device-width, initial-scale=1.0";
-            // link rel="preconnect" href="https://fonts.googleapis.com";
-            // link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
-            // link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
-            link rel="stylesheet" href="style.css";
+            link rel="preconnect" href="https://fonts.googleapis.com";
+            link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
+            link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
+            link rel="stylesheet" href="../style.css";
             title { (title) }
         }
         body {
@@ -56,7 +56,6 @@ fn page(article: &str, title: &str, date: Date, social: &[Social]) -> String {
             }
         }
     }
-    .into_string()
 }
 
 fn escape(s: &str, output: &mut String) {
@@ -104,7 +103,7 @@ fn article(input: &str, deps: &mut HashSet<Box<str>>) -> String {
                 _ = write!(&mut html, "<a href=\"{dest_url}\" target=\"_blank\">");
             }
             Event::Start(Tag::Image { dest_url, .. }) => {
-                _ = write!(&mut html, "<img src=\"{dest_url}\">");
+                _ = write!(&mut html, "<img src=\"../{dest_url}\">");
                 deps.insert(Box::from(&*dest_url));
             }
             Event::Start(Tag::MetadataBlock(_)) => todo!(),
