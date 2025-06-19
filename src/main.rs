@@ -4,7 +4,7 @@ mod icon;
 mod lang;
 
 use {
-    crate::{date::Date, html::Html, icon::Icon},
+    crate::{date::Date, html::Html, icon::Icon, lang::Lang},
     serde::{Deserialize, Serialize},
     std::{
         collections::{HashMap, hash_map::Entry},
@@ -29,13 +29,16 @@ fn run() -> Result<(), Error> {
     let dist_path = "dist";
     create_dir_all(dist_path)?;
 
-    let mut generator = Generator::new(dist_path, &conf.social)?;
+    let mut gener = Generator::new(dist_path, &conf.social)?;
     for (name, article) in conf.articles {
-        generator.generate(name, &article)?;
+        let generate = gener.generate(&name, &article);
+        for lang in Lang::ENUM {
+            generate(lang)?;
+        }
     }
 
-    generator.save_style()?;
-    generator.save_meta()?;
+    gener.save_style()?;
+    gener.save_meta()?;
     Ok(())
 }
 
@@ -62,32 +65,37 @@ impl<'soc> Generator<'soc> {
         })
     }
 
-    fn generate(&mut self, name: String, article: &Article) -> Result<(), Error> {
-        let article_meta = self.meta.articles.entry(name.clone());
-        if let Entry::Occupied(_) = &article_meta {
-            if !self.rerender {
-                return Ok(());
-            }
-        }
-
-        println!("generate {name}.html");
-
-        let article_path = format!("{name}.md");
-        let md = read(&article_path)?;
+    fn generate(&mut self, name: &str, article: &Article) -> impl Fn(Lang) -> Result<(), Error> {
+        let article_meta = self.meta.articles.entry(name.to_owned());
+        let skip = matches!(article_meta, Entry::Occupied(_)) && !self.rerender;
 
         let article_meta = article_meta.or_insert_with(|| ArticleMeta { date: date::now() });
-        let Html { page, deps } = html::make(&md, &article.title, article_meta.date, self.social);
+        let dist_path = self.dist_path;
+        let social = self.social;
 
-        let page_path = format!("{}/{name}.html", self.dist_path);
-        write(&page_path, &page)?;
+        move |_lang| {
+            if skip {
+                return Ok(());
+            }
 
-        for dep in deps {
-            let to = format!("{}/{dep}", self.dist_path);
-            println!("save {to}");
-            copy(&dep, &to)?;
+            println!("generate {name}.html");
+
+            let article_path = format!("{name}.md");
+            let md = read(&article_path)?;
+
+            let Html { page, deps } = html::make(&md, &article.title, article_meta.date, social);
+
+            let page_path = format!("{dist_path}/{name}.html",);
+            write(&page_path, &page)?;
+
+            for dep in deps {
+                let to = format!("{dist_path}/{dep}");
+                println!("save {to}");
+                copy(&dep, &to)?;
+            }
+
+            Ok(())
         }
-
-        Ok(())
     }
 
     fn save_style(&self) -> Result<(), Error> {
@@ -155,7 +163,7 @@ struct Meta {
 }
 
 impl Meta {
-    const VERSION: u32 = 0;
+    const VERSION: u32 = 1;
 
     fn new() -> Self {
         Self {
