@@ -1,11 +1,17 @@
 use {
-    crate::{Social, date::Date, lang::Lang},
+    crate::{
+        Social,
+        date::Date,
+        lang::{Lang, Local},
+    },
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
     std::{collections::HashSet, fmt::Write},
 };
 
 pub struct Make<'art> {
+    pub lang: Lang,
+    pub local: &'art Local,
     pub md: &'art str,
     pub title: &'art str,
     pub date: Date,
@@ -15,6 +21,8 @@ pub struct Make<'art> {
 
 pub fn make(make: Make<'_>) -> String {
     let Make {
+        lang,
+        local,
         md,
         title,
         date,
@@ -22,18 +30,22 @@ pub fn make(make: Make<'_>) -> String {
         deps,
     } = make;
 
+    let date = date.render(local, lang);
     page(&article(md, deps), title, date, social).into_string()
 }
 
-fn page(article: &str, title: &str, date: Date, social: &[Social]) -> maud::Markup {
+fn page<D>(article: &str, title: &str, date: D, social: &[Social]) -> maud::Markup
+where
+    D: maud::Render,
+{
     maud::html! {
         (maud::DOCTYPE)
         head {
             meta charset="utf-8";
             meta name="viewport" content="width=device-width, initial-scale=1.0";
-            link rel="preconnect" href="https://fonts.googleapis.com";
-            link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
-            link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
+            // link rel="preconnect" href="https://fonts.googleapis.com";
+            // link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
+            // link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
             link rel="stylesheet" href="../style.css";
             title { (title) }
         }
@@ -42,7 +54,7 @@ fn page(article: &str, title: &str, date: Date, social: &[Social]) -> maud::Mark
             script { (maud::PreEscaped(include_str!("../assets/show.js"))) }
             header .deferred.show {
                 h1 { (title) }
-                .date { (date.render(Lang::En)) }
+                .date { (date) }
             }
             article .deferred.show { (maud::PreEscaped(article)) }
             footer .deferred.show {

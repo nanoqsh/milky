@@ -4,7 +4,12 @@ mod icon;
 mod lang;
 
 use {
-    crate::{date::Date, html::Make, icon::Icon, lang::Lang},
+    crate::{
+        date::Date,
+        html::Make,
+        icon::Icon,
+        lang::{Lang, Local},
+    },
     serde::{Deserialize, Serialize},
     std::{
         collections::{HashMap, HashSet, hash_map::Entry},
@@ -25,10 +30,13 @@ fn main() -> ExitCode {
 
 fn run() -> Result<(), Error> {
     let conf = read_conf()?;
-    let mut gener = Generator::new(&conf.social)?;
-    for (name, article) in conf.articles {
-        let mut generate = gener.generate(&name, &article);
-        for lang in Lang::ENUM {
+    let mut gener = Generator::new(&conf)?;
+    for (name, article) in &conf.articles {
+        let mut generate = gener.generate(name, article);
+        for lang in [Lang::from_ascii(*b"en"), Lang::from_ascii(*b"ru")]
+            .into_iter()
+            .flatten()
+        {
             generate(lang)?;
         }
     }
@@ -37,20 +45,23 @@ fn run() -> Result<(), Error> {
     Ok(())
 }
 
-struct Generator<'soc> {
+struct Generator<'conf> {
+    conf: &'conf Conf,
     meta: Meta,
     rerender: bool,
-    social: &'soc [Social],
     deps: HashSet<Box<str>>,
 }
 
-impl<'soc> Generator<'soc> {
+impl<'conf> Generator<'conf> {
     const DIST_PATH: &'static str = "dist";
 
-    fn new(social: &'soc [Social]) -> Result<Self, Error> {
+    fn new(conf: &'conf Conf) -> Result<Self, Error> {
         create_dir_all(Self::DIST_PATH)?;
 
-        for lang in Lang::ENUM {
+        for lang in [Lang::from_ascii(*b"en"), Lang::from_ascii(*b"ru")]
+            .into_iter()
+            .flatten()
+        {
             create_dir_all(&format!("{}/{lang}", Self::DIST_PATH))?;
         }
 
@@ -61,9 +72,9 @@ impl<'soc> Generator<'soc> {
         }
 
         Ok(Self {
+            conf,
             meta,
             rerender,
-            social,
             deps: HashSet::new(),
         })
     }
@@ -73,7 +84,7 @@ impl<'soc> Generator<'soc> {
         let skip = matches!(article_meta, Entry::Occupied(_)) && !self.rerender;
 
         let article_meta = article_meta.or_insert_with(|| ArticleMeta { date: date::now() });
-        let social = self.social;
+        let conf = self.conf;
         let deps = &mut self.deps;
 
         move |lang| {
@@ -95,10 +106,12 @@ impl<'soc> Generator<'soc> {
             };
 
             let page = html::make(Make {
+                lang,
+                local: &conf.local,
                 md: &md,
                 title: &article.title,
                 date: article_meta.date,
-                social,
+                social: &conf.social,
                 deps,
             });
 
@@ -140,6 +153,7 @@ struct Social {
 struct Conf {
     articles: Vec<(Box<str>, Article)>,
     social: Vec<Social>,
+    local: Local,
 }
 
 fn read_conf() -> Result<Conf, Error> {
@@ -158,9 +172,22 @@ fn read_conf() -> Result<Conf, Error> {
     let mut articles: Vec<_> = scheme.article.into_iter().collect();
     articles.sort_by(|(a, _), (b, _)| a.cmp(b));
 
+    let local_path = "Local.toml";
+    let local = match read(local_path) {
+        Read::Content(s) => toml::from_str(&s)
+            .inspect_err(|_| eprintln!("failed to deserialize file {local_path}"))
+            .map_err(Error::other)?,
+        Read::NotFound => {
+            eprintln!("file Local.toml not found");
+            Local::new()
+        }
+        Read::Failed(e) => return Err(e),
+    };
+
     Ok(Conf {
         articles,
         social: scheme.social,
+        local,
     })
 }
 
