@@ -1,5 +1,5 @@
 use {
-    serde::{Deserialize, Serialize, de::Error as _},
+    serde::{Deserialize, Serialize, de},
     std::{collections::HashMap, fmt},
     time::Month,
 };
@@ -53,8 +53,24 @@ impl<'de> Deserialize<'de> for Lang {
     where
         D: serde::Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        Self::from_str(&s).map_err(D::Error::custom)
+        struct Visit;
+
+        impl<'de> de::Visitor<'de> for Visit {
+            type Value = Lang;
+
+            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("a lang value")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Lang::from_str(v).map_err(E::custom)
+            }
+        }
+
+        deserializer.deserialize_str(Visit)
     }
 }
 
