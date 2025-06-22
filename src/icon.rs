@@ -1,7 +1,9 @@
-use {serde::Deserialize, std::fmt};
+use {
+    serde::{Deserialize, de},
+    std::fmt,
+};
 
-#[derive(Clone, Copy, Deserialize)]
-#[serde(try_from = "String")]
+#[derive(Clone, Copy)]
 pub enum Icon {
     Discord,
     Github,
@@ -9,6 +11,15 @@ pub enum Icon {
 }
 
 impl Icon {
+    fn from_str(s: &str) -> Result<Self, UnknownIcon> {
+        match s {
+            "ds" => Ok(Self::Discord),
+            "gh" => Ok(Self::Github),
+            "x" => Ok(Self::X),
+            _ => Err(UnknownIcon),
+        }
+    }
+
     fn svg(self) -> &'static str {
         match self {
             Self::Discord => include_str!("../icons/discord.svg"),
@@ -26,16 +37,29 @@ impl Icon {
     }
 }
 
-impl TryFrom<String> for Icon {
-    type Error = UnknownIcon;
+impl<'de> Deserialize<'de> for Icon {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Visit;
 
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        match s.as_str() {
-            "ds" => Ok(Self::Discord),
-            "gh" => Ok(Self::Github),
-            "x" => Ok(Self::X),
-            _ => Err(UnknownIcon),
+        impl de::Visitor<'_> for Visit {
+            type Value = Icon;
+
+            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("an icon")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Icon::from_str(v).map_err(E::custom)
+            }
         }
+
+        deserializer.deserialize_str(Visit)
     }
 }
 
