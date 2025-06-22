@@ -83,7 +83,7 @@ impl<'conf> Generator<'conf> {
             .entry(name.to_owned())
             .or_insert_with(|| ArticleMeta {
                 date: date::now(),
-                langs: vec![],
+                langs: HashSet::new(),
             });
 
         let conf = self.conf;
@@ -123,7 +123,7 @@ impl<'conf> Generator<'conf> {
             });
 
             write(&page_path, &page)?;
-            meta.langs.push(lang);
+            meta.langs.insert(lang);
 
             Ok(())
         }
@@ -205,7 +205,7 @@ fn read_conf() -> Result<Conf, Error> {
 struct ArticleMeta {
     date: Date,
     #[serde(default)]
-    langs: Vec<Lang>,
+    langs: HashSet<Lang>,
 }
 
 #[derive(Serialize, Deserialize)]
