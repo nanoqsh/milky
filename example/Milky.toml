@@ -1,5 +1,6 @@
 [article.hello]
-title = "Some title!"
+ru = { title = "Какой-то заголовок!" }
+en = { title = "Some title!" }
 
 [[social]]
 href = "https://github.com/nanoqsh"

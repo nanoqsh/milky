@@ -1,5 +1,5 @@
 use {
-    serde::{Deserialize, de::Error as _},
+    serde::{Deserialize, Serialize, de::Error as _},
     std::{collections::HashMap, fmt},
     time::Month,
 };
@@ -39,13 +39,22 @@ impl fmt::Display for Lang {
     }
 }
 
+impl Serialize for Lang {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
 impl<'de> Deserialize<'de> for Lang {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        let s = <&str>::deserialize(deserializer)?;
-        Self::from_str(s).map_err(D::Error::custom)
+        let s = String::deserialize(deserializer)?;
+        Self::from_str(&s).map_err(D::Error::custom)
     }
 }
 

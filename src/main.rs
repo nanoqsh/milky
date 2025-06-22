@@ -12,15 +12,19 @@ use {
     },
     serde::{Deserialize, Serialize},
     std::{
-        collections::{HashMap, HashSet, hash_map::Entry},
-        fs,
+        collections::{HashMap, HashSet},
+        env, fs,
         io::{Error, ErrorKind},
         process::ExitCode,
     },
 };
 
 fn main() -> ExitCode {
-    if let Err(e) = run() {
+    let force = env::args()
+        .skip(1)
+        .any(|arg| arg == "-f" || arg == "--force");
+
+    if let Err(e) = run(force) {
         eprintln!("error: {e}");
         ExitCode::FAILURE
     } else {
@@ -28,16 +32,13 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> Result<(), Error> {
+fn run(force: bool) -> Result<(), Error> {
     let conf = read_conf()?;
-    let mut gener = Generator::new(&conf)?;
-    for (name, article) in &conf.articles {
-        let mut generate = gener.generate(name, article);
-        for lang in [Lang::from_ascii(*b"en"), Lang::from_ascii(*b"ru")]
-            .into_iter()
-            .flatten()
-        {
-            generate(lang)?;
+    let mut gener = Generator::new(force, &conf)?;
+    for (name, info) in &conf.articles {
+        let mut generate = gener.generate(name);
+        for (&lang, article) in info {
+            generate(lang, article)?;
         }
     }
 
@@ -50,23 +51,17 @@ struct Generator<'conf> {
     meta: Meta,
     rerender: bool,
     deps: HashSet<Box<str>>,
+    lang_dirs: HashSet<Lang>,
 }
 
 impl<'conf> Generator<'conf> {
     const DIST_PATH: &'static str = "dist";
 
-    fn new(conf: &'conf Conf) -> Result<Self, Error> {
+    fn new(force: bool, conf: &'conf Conf) -> Result<Self, Error> {
         create_dir_all(Self::DIST_PATH)?;
 
-        for lang in [Lang::from_ascii(*b"en"), Lang::from_ascii(*b"ru")]
-            .into_iter()
-            .flatten()
-        {
-            create_dir_all(&format!("{}/{lang}", Self::DIST_PATH))?;
-        }
-
         let mut meta = Meta::read()?;
-        let rerender = meta.version != Meta::VERSION;
+        let rerender = meta.version != Meta::VERSION || force;
         if rerender {
             meta.version = Meta::VERSION;
         }
@@ -76,20 +71,32 @@ impl<'conf> Generator<'conf> {
             meta,
             rerender,
             deps: HashSet::new(),
+            lang_dirs: HashSet::new(),
         })
     }
 
-    fn generate(&mut self, name: &str, article: &Article) -> impl FnMut(Lang) -> Result<(), Error> {
-        let article_meta = self.meta.articles.entry(name.to_owned());
-        let skip = matches!(article_meta, Entry::Occupied(_)) && !self.rerender;
+    fn generate(&mut self, name: &str) -> impl FnMut(Lang, &Article) -> Result<(), Error> {
+        let skip = !self.rerender;
+        let meta = self
+            .meta
+            .articles
+            .entry(name.to_owned())
+            .or_insert_with(|| ArticleMeta {
+                date: date::now(),
+                langs: vec![],
+            });
 
-        let article_meta = article_meta.or_insert_with(|| ArticleMeta { date: date::now() });
         let conf = self.conf;
         let deps = &mut self.deps;
+        let lang_dirs = &mut self.lang_dirs;
 
-        move |lang| {
-            if skip {
+        move |lang, Article { title }| {
+            if skip && meta.langs.contains(&lang) {
                 return Ok(());
+            }
+
+            if lang_dirs.insert(lang) {
+                create_dir_all(&format!("{}/{lang}", Self::DIST_PATH))?;
             }
 
             let article_path = format!("{lang}/{name}.md");
@@ -109,13 +116,14 @@ impl<'conf> Generator<'conf> {
                 lang,
                 local: &conf.local,
                 md: &md,
-                title: &article.title,
-                date: article_meta.date,
+                title,
+                date: meta.date,
                 social: &conf.social,
                 deps,
             });
 
             write(&page_path, &page)?;
+            meta.langs.push(lang);
 
             Ok(())
         }
@@ -141,7 +149,7 @@ impl<'conf> Generator<'conf> {
 
 #[derive(Deserialize)]
 struct Article {
-    title: String,
+    title: Box<str>,
 }
 
 #[derive(Deserialize)]
@@ -150,8 +158,10 @@ struct Social {
     icon: Icon,
 }
 
+type ArticleInfo = HashMap<Lang, Article>;
+
 struct Conf {
-    articles: Vec<(Box<str>, Article)>,
+    articles: Vec<(Box<str>, ArticleInfo)>,
     social: Vec<Social>,
     local: Local,
 }
@@ -159,7 +169,7 @@ struct Conf {
 fn read_conf() -> Result<Conf, Error> {
     #[derive(Deserialize)]
     struct Scheme {
-        article: HashMap<Box<str>, Article>,
+        article: HashMap<Box<str>, ArticleInfo>,
         social: Vec<Social>,
     }
 
@@ -194,6 +204,8 @@ fn read_conf() -> Result<Conf, Error> {
 #[derive(Serialize, Deserialize)]
 struct ArticleMeta {
     date: Date,
+    #[serde(default)]
+    langs: Vec<Lang>,
 }
 
 #[derive(Serialize, Deserialize)]
