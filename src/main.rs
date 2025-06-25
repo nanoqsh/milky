@@ -6,7 +6,7 @@ mod lang;
 use {
     crate::{
         date::Date,
-        html::Make,
+        html::{Make, Target},
         icon::Icon,
         lang::{Lang, Local},
     },
@@ -115,11 +115,13 @@ impl<'conf> Generator<'conf> {
             let page = html::make(Make {
                 lang,
                 local: &conf.local,
-                md: &md,
                 title,
-                date: meta.date,
                 social: &conf.social,
-                deps,
+                target: Target::Article {
+                    md: &md,
+                    date: meta.date,
+                    deps,
+                },
             });
 
             write(&page_path, &page.into_string())?;

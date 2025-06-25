@@ -12,27 +12,38 @@ use {
 pub struct Make<'art> {
     pub lang: Lang,
     pub local: &'art Local,
-    pub md: &'art str,
     pub title: &'art str,
-    pub date: Date,
     pub social: &'art [Social],
-    pub deps: &'art mut HashSet<Box<str>>,
+    pub target: Target<'art>,
+}
+
+pub enum Target<'art> {
+    #[expect(dead_code)]
+    Main,
+    Article {
+        md: &'art str,
+        date: Date,
+        deps: &'art mut HashSet<Box<str>>,
+    },
 }
 
 pub fn make(make: Make<'_>) -> maud::Markup {
     let Make {
         lang,
         local,
-        md,
         title,
-        date,
         social,
-        deps,
+        target,
     } = make;
 
-    let date = date.render(local, lang);
-    let html = render_article(md, deps);
-    page(article(&html), title, date, social, 1)
+    match target {
+        Target::Main => todo!(),
+        Target::Article { md, date, deps } => {
+            let date = date.render(local, lang);
+            let html = render_article(md, deps);
+            page(article(&html), title, date, social, 1)
+        }
+    }
 }
 
 fn article(article: &str) -> maud::Markup {
