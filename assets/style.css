@@ -9,7 +9,7 @@
     --ge: #89b482;
     --id: #e5d1a4;
     --code: #caaf7f;
-    --border: 6px;
+    --border: 4px;
     --pad: 1.5rem;
     --width: 870px;
 }
@@ -69,7 +69,7 @@ header {
 }
 
 header .date {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     text-align: left;
     color: var(--code);
 }

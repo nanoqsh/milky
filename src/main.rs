@@ -122,7 +122,7 @@ impl<'conf> Generator<'conf> {
                 deps,
             });
 
-            write(&page_path, &page)?;
+            write(&page_path, &page.into_string())?;
             meta.langs.insert(lang);
 
             Ok(())

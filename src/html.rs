@@ -19,7 +19,7 @@ pub struct Make<'art> {
     pub deps: &'art mut HashSet<Box<str>>,
 }
 
-pub fn make(make: Make<'_>) -> String {
+pub fn make(make: Make<'_>) -> maud::Markup {
     let Make {
         lang,
         local,
@@ -31,11 +31,19 @@ pub fn make(make: Make<'_>) -> String {
     } = make;
 
     let date = date.render(local, lang);
-    page(&article(md, deps), title, date, social).into_string()
+    let html = render_article(md, deps);
+    page(article(&html), title, date, social, 1)
 }
 
-fn page<D>(article: &str, title: &str, date: D, social: &[Social]) -> maud::Markup
+fn article(article: &str) -> maud::Markup {
+    maud::html! {
+        article .deferred.show { (maud::PreEscaped(article)) }
+    }
+}
+
+fn page<C, D>(content: C, title: &str, date: D, social: &[Social], level: u8) -> maud::Markup
 where
+    C: maud::Render,
     D: maud::Render,
 {
     maud::html! {
@@ -46,7 +54,7 @@ where
             // link rel="preconnect" href="https://fonts.googleapis.com";
             // link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
             // link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
-            link rel="stylesheet" href="../style.css";
+            link rel="stylesheet" href=(relative_path("style.css", level));
             title { (title) }
         }
         body {
@@ -56,7 +64,7 @@ where
                 h1 { (title) }
                 .date { (date) }
             }
-            article .deferred.show { (maud::PreEscaped(article)) }
+            (content)
             footer .deferred.show {
                 .socials {
                     @for s in social {
@@ -70,13 +78,30 @@ where
     }
 }
 
+fn relative_path(base: &str, level: u8) -> impl maud::Render {
+    struct Rel<'base>(&'base str, u8);
+
+    impl maud::Render for Rel<'_> {
+        fn render_to(&self, buffer: &mut String) {
+            let &Self(base, level) = self;
+            for _ in 0..level {
+                buffer.push_str("../");
+            }
+
+            buffer.push_str(base);
+        }
+    }
+
+    Rel(base, level)
+}
+
 fn escape(s: &str, output: &mut String) {
     // don't reinvent the wheel,
     // the `maud` already has an implementation of escaping
     _ = maud::Escaper::new(output).write_str(s);
 }
 
-fn article(input: &str, deps: &mut HashSet<Box<str>>) -> String {
+fn render_article(input: &str, deps: &mut HashSet<Box<str>>) -> String {
     let mut html = String::new();
     let mut code = None;
 
