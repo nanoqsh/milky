@@ -40,8 +40,8 @@ pub fn make(make: Make<'_>) -> maud::Markup {
         Target::Main => todo!(),
         Target::Article { md, date, deps } => {
             let date = date.render(local, lang);
-            let html = render_article(md, deps);
-            page(article(&html), title, date, social, 1)
+            let html = md_to_html(md, deps);
+            page(title, article(&html), date, social, 1)
         }
     }
 }
@@ -52,7 +52,7 @@ fn article(article: &str) -> maud::Markup {
     }
 }
 
-fn page<C, D>(content: C, title: &str, date: D, social: &[Social], level: u8) -> maud::Markup
+fn page<C, D>(title: &str, content: C, date: D, social: &[Social], level: u8) -> maud::Markup
 where
     C: maud::Render,
     D: maud::Render,
@@ -112,11 +112,11 @@ fn escape(s: &str, output: &mut String) {
     _ = maud::Escaper::new(output).write_str(s);
 }
 
-fn render_article(input: &str, deps: &mut HashSet<Box<str>>) -> String {
+fn md_to_html(md: &str, deps: &mut HashSet<Box<str>>) -> String {
     let mut html = String::new();
     let mut code = None;
 
-    for event in Parser::new(input) {
+    for event in Parser::new(md) {
         match event {
             Event::Start(Tag::Paragraph) => html.push_str("<p>"),
             Event::Start(Tag::Heading { level, .. }) => _ = write!(&mut html, "<{level}>"),
@@ -223,7 +223,7 @@ fn render_article(input: &str, deps: &mut HashSet<Box<str>>) -> String {
 }
 
 fn highlight_rust(code: &str) -> Result<String, syn::Error> {
-    let stream: TokenStream = syn::parse_str(code)?;
+    let stream = syn::parse_str(code)?;
     let mut tokens = vec![];
     parse(code, stream, &mut tokens);
 
@@ -231,7 +231,7 @@ fn highlight_rust(code: &str) -> Result<String, syn::Error> {
     let mut last = 0;
     for token in tokens {
         let range = token.span.byte_range();
-        escape(&code[last..range.start], &mut output);
+        escape_with_comments(&code[last..range.start], &mut output);
         _ = write!(&mut output, "<span class=\"{}\">", token.kind.class());
         escape(&code[range.start..range.end], &mut output);
         output.push_str("</span>");
@@ -239,10 +239,89 @@ fn highlight_rust(code: &str) -> Result<String, syn::Error> {
     }
 
     if let Some(s) = code.get(last..) {
-        escape(s, &mut output);
+        escape_with_comments(s, &mut output);
     }
 
     Ok(output)
+}
+
+fn escape_with_comments(s: &str, output: &mut String) {
+    for comm in find_comments(s) {
+        match comm {
+            Ok(s) => {
+                output.push_str("<span class=\"cm\">");
+                escape(s, output);
+                output.push_str("</span>");
+            }
+            Err(s) => escape(s, output),
+        }
+    }
+}
+
+fn find_comments(mut code: &str) -> impl Iterator<Item = Result<&str, &str>> {
+    // todo: state machine to fairly return an iterator
+    let mut out = vec![];
+
+    #[derive(Clone, Copy)]
+    enum Comment {
+        Slash,
+        Star,
+    }
+
+    let pats = [(*b"//", Comment::Slash), (*b"/*", Comment::Star)]
+        .map(|(p, var)| move |w| (w == p).then_some(var));
+
+    loop {
+        let Some((pos, pat)) = find(code, pats) else {
+            out.push(Err(code));
+            break;
+        };
+
+        let (left, right) = code.split_at(pos);
+        out.push(Err(left));
+        code = right;
+
+        let pos = match pat {
+            Comment::Slash => {
+                let f = |w| (w == *b"\n").then_some(());
+                let Some((pos, ())) = find(code, [f]) else {
+                    out.push(Ok(code));
+                    break;
+                };
+
+                pos + 1
+            }
+            Comment::Star => {
+                let f = |w| (w == *b"*/").then_some(());
+                let Some((pos, ())) = find(code, [f]) else {
+                    out.push(Ok(code));
+                    break;
+                };
+
+                pos + 2
+            }
+        };
+
+        let (left, right) = code.split_at(pos);
+        out.push(Ok(left));
+        code = right;
+    }
+
+    out.into_iter()
+}
+
+fn find<F, P, const N: usize, const M: usize>(code: &str, pats: [F; M]) -> Option<(usize, P)>
+where
+    F: Fn([u8; N]) -> Option<P>,
+{
+    let mut pat = None;
+    let pos = code.as_bytes().windows(N).position(|w| {
+        let w: [u8; N] = w.try_into().expect("n bytes window");
+        pat = pats.iter().find_map(|p| p(w));
+        pat.is_some()
+    })?;
+
+    Some((pos, pat?))
 }
 
 enum Kind {
@@ -276,6 +355,12 @@ fn parse(code: &str, stream: TokenStream, tokens: &mut Vec<Token>) {
             TokenTree::Group(group) => parse(code, group.stream(), tokens),
             TokenTree::Ident(ident) => {
                 let span = ident.span();
+
+                // skip docs
+                if code[span.byte_range()].starts_with("///") {
+                    continue;
+                }
+
                 let kind = match &code[span.byte_range()] {
                     s if is_keyword(s) => Kind::Keyword,
                     s if is_generic(s) => Kind::Generic,
@@ -334,4 +419,65 @@ fn is_typing(s: &str) -> bool {
     }
 
     STDTYPES.with(|set| set.contains(s))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn find_comment_slash() {
+        let actual: Vec<_> = find_comments("//aaa")
+            .filter(|(Ok(s) | Err(s))| !s.is_empty())
+            .collect();
+
+        assert_eq!(actual, [Ok("//aaa")]);
+
+        let actual: Vec<_> = find_comments("aaa").collect();
+        assert_eq!(actual, [Err("aaa")]);
+
+        let actual: Vec<_> = find_comments("aa//b\nc//dd").collect();
+        assert_eq!(
+            actual,
+            [
+                Err("aa"),   //
+                Ok("//b\n"), //
+                Err("c"),    //
+                Ok("//dd"),  //
+            ]
+        );
+    }
+
+    #[test]
+    fn find_comment_star() {
+        let actual: Vec<_> = find_comments("/*aaa")
+            .filter(|(Ok(s) | Err(s))| !s.is_empty())
+            .collect();
+
+        assert_eq!(actual, [Ok("/*aaa")]);
+
+        let actual: Vec<_> = find_comments("aaa").collect();
+        assert_eq!(actual, [Err("aaa")]);
+
+        let actual: Vec<_> = find_comments("aa/*b*/c/*dd*/eee").collect();
+        assert_eq!(
+            actual,
+            [
+                Err("aa"),    //
+                Ok("/*b*/"),  //
+                Err("c"),     //
+                Ok("/*dd*/"), //
+                Err("eee"),   //
+            ]
+        );
+    }
+
+    #[test]
+    fn find_comment_doc() {
+        let actual: Vec<_> = find_comments("///aaa")
+            .filter(|(Ok(s) | Err(s))| !s.is_empty())
+            .collect();
+
+        assert_eq!(actual, [Ok("///aaa")]);
+    }
 }

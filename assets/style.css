@@ -8,6 +8,7 @@
     --ty: #7daea3;
     --ge: #89b482;
     --id: #e5d1a4;
+    --cm: #928374;
     --code: #caaf7f;
     --border: 4px;
     --pad: 1.5rem;
@@ -123,6 +124,10 @@ code .ge {
 
 code .id {
     color: var(--id);
+}
+
+code .cm {
+    color: var(--cm);
 }
 
 .inline {
