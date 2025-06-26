@@ -6,7 +6,7 @@ use {
     },
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
-    std::{collections::HashSet, fmt::Write},
+    std::{collections::HashSet, fmt::Write, iter},
 };
 
 pub struct Make<'art> {
@@ -259,8 +259,11 @@ fn escape_with_comments(s: &str, output: &mut String) {
 }
 
 fn find_comments(mut code: &str) -> impl Iterator<Item = Result<&str, &str>> {
-    // todo: state machine to fairly return an iterator
-    let mut out = vec![];
+    enum State {
+        Skip,
+        Comment(Comment),
+        End,
+    }
 
     #[derive(Clone, Copy)]
     enum Comment {
@@ -268,46 +271,54 @@ fn find_comments(mut code: &str) -> impl Iterator<Item = Result<&str, &str>> {
         Star,
     }
 
-    let pats = [(*b"//", Comment::Slash), (*b"/*", Comment::Star)]
-        .map(|(p, var)| move |w| (w == p).then_some(var));
+    let mut state = State::Skip;
 
-    loop {
-        let Some((pos, pat)) = find(code, pats) else {
-            out.push(Err(code));
-            break;
-        };
+    let patterns = [(*b"//", Comment::Slash), (*b"/*", Comment::Star)]
+        .map(|(pattern, comment)| move |w| (w == pattern).then_some(comment));
 
-        let (left, right) = code.split_at(pos);
-        out.push(Err(left));
-        code = right;
+    iter::from_fn(move || match state {
+        State::Skip => {
+            let Some((pos, comment)) = find(code, patterns) else {
+                state = State::End;
+                return Some(Err(code));
+            };
 
-        let pos = match pat {
-            Comment::Slash => {
-                let f = |w| (w == *b"\n").then_some(());
-                let Some((pos, ())) = find(code, [f]) else {
-                    out.push(Ok(code));
-                    break;
-                };
+            let (left, right) = code.split_at(pos);
+            code = right;
 
-                pos + 1
-            }
-            Comment::Star => {
-                let f = |w| (w == *b"*/").then_some(());
-                let Some((pos, ())) = find(code, [f]) else {
-                    out.push(Ok(code));
-                    break;
-                };
+            state = State::Comment(comment);
+            Some(Err(left))
+        }
+        State::Comment(comment) => {
+            let pos = match comment {
+                Comment::Slash => {
+                    let f = |w| (w == *b"\n").then_some(());
+                    let Some((pos, ())) = find(code, [f]) else {
+                        state = State::End;
+                        return Some(Ok(code));
+                    };
 
-                pos + 2
-            }
-        };
+                    pos + 1
+                }
+                Comment::Star => {
+                    let f = |w| (w == *b"*/").then_some(());
+                    let Some((pos, ())) = find(code, [f]) else {
+                        state = State::End;
+                        return Some(Ok(code));
+                    };
 
-        let (left, right) = code.split_at(pos);
-        out.push(Ok(left));
-        code = right;
-    }
+                    pos + 2
+                }
+            };
 
-    out.into_iter()
+            let (left, right) = code.split_at(pos);
+            code = right;
+
+            state = State::Skip;
+            Some(Ok(left))
+        }
+        State::End => None,
+    })
 }
 
 fn find<F, P, const N: usize, const M: usize>(code: &str, pats: [F; M]) -> Option<(usize, P)>
