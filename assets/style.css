@@ -56,8 +56,7 @@ h3 {
     font-size: 1.5rem;
 }
 
-header,
-article {
+.content {
     width: 100%;
     max-width: var(--width);
     padding: 0 1rem;

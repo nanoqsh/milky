@@ -18,8 +18,7 @@ pub struct Make<'art> {
 }
 
 pub enum Target<'art> {
-    #[expect(dead_code)]
-    Main,
+    List(&'art [Post<'art>]),
     Article {
         md: &'art str,
         date: Date,
@@ -37,7 +36,7 @@ pub fn make(make: Make<'_>) -> maud::Markup {
     } = make;
 
     match target {
-        Target::Main => todo!(),
+        Target::List(posts) => page(title, list(posts, lang), maud::html! {}, social, 0),
         Target::Article { md, date, deps } => {
             let date = date.render(local, lang);
             let html = md_to_html(md, deps);
@@ -46,9 +45,28 @@ pub fn make(make: Make<'_>) -> maud::Markup {
     }
 }
 
+pub struct Post<'art> {
+    pub name: &'art str,
+    pub title: &'art str,
+}
+
+fn list(posts: &[Post<'_>], lang: Lang) -> maud::Markup {
+    let href = |name| format!("{lang}/{name}.html");
+
+    maud::html! {
+        ul .content.deferred.show {
+            @for Post { name, title } in posts {
+                li {
+                    a href=(href(name)) { (title) }
+                }
+            }
+        }
+    }
+}
+
 fn article(article: &str) -> maud::Markup {
     maud::html! {
-        article .deferred.show { (maud::PreEscaped(article)) }
+        article .content.deferred.show { (maud::PreEscaped(article)) }
     }
 }
 
@@ -71,7 +89,7 @@ where
         body {
             style { (maud::PreEscaped(include_str!("../assets/inline.css"))) }
             script { (maud::PreEscaped(include_str!("../assets/show.js"))) }
-            header .deferred.show {
+            header .content.deferred.show {
                 h1 { (title) }
                 .date { (date) }
             }

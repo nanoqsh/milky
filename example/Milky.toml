@@ -1,3 +1,6 @@
+[blog]
+title = "Nano blog"
+
 [article.hello]
 ru = { title = "Какой-то заголовок!" }
 en = { title = "Some title!" }

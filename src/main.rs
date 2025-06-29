@@ -6,7 +6,7 @@ mod lang;
 use {
     crate::{
         date::Date,
-        html::{Make, Target},
+        html::{Make, Post, Target},
         icon::Icon,
         lang::{Lang, Local},
     },
@@ -42,6 +42,7 @@ fn run(force: bool) -> Result<(), Error> {
         }
     }
 
+    gener.generate_list()?;
     gener.save()?;
     Ok(())
 }
@@ -51,7 +52,8 @@ struct Generator<'conf> {
     meta: Meta,
     rerender: bool,
     deps: HashSet<Box<str>>,
-    lang_dirs: HashSet<Lang>,
+    langs: HashSet<Lang>,
+    posts: HashMap<Lang, Vec<Post<'conf>>>,
 }
 
 impl<'conf> Generator<'conf> {
@@ -71,11 +73,15 @@ impl<'conf> Generator<'conf> {
             meta,
             rerender,
             deps: HashSet::new(),
-            lang_dirs: HashSet::new(),
+            langs: HashSet::new(),
+            posts: HashMap::new(),
         })
     }
 
-    fn generate(&mut self, name: &str) -> impl FnMut(Lang, &Article) -> Result<(), Error> {
+    fn generate(
+        &mut self,
+        name: &'conf str,
+    ) -> impl FnMut(Lang, &'conf Article) -> Result<(), Error> {
         let skip = !self.rerender;
         let meta = self
             .meta
@@ -88,14 +94,17 @@ impl<'conf> Generator<'conf> {
 
         let conf = self.conf;
         let deps = &mut self.deps;
-        let lang_dirs = &mut self.lang_dirs;
+        let langs = &mut self.langs;
+        let posts = &mut self.posts;
 
         move |lang, Article { title }| {
+            posts.entry(lang).or_default().push(Post { name, title });
+
             if skip && meta.langs.contains(&lang) {
                 return Ok(());
             }
 
-            if lang_dirs.insert(lang) {
+            if langs.insert(lang) {
                 create_dir_all(&format!("{}/{lang}", Self::DIST_PATH))?;
             }
 
@@ -131,6 +140,25 @@ impl<'conf> Generator<'conf> {
         }
     }
 
+    fn generate_list(&self) -> Result<(), Error> {
+        for (&lang, posts) in &self.posts {
+            let page_path = format!("{}/{lang}.html", Self::DIST_PATH);
+            println!("generate {page_path}");
+
+            let page = html::make(Make {
+                lang,
+                local: &self.conf.local,
+                title: &self.conf.blog.title,
+                social: &self.conf.social,
+                target: Target::List(&posts),
+            });
+
+            write(&page_path, &page.into_string())?;
+        }
+
+        Ok(())
+    }
+
     fn save(self) -> Result<(), Error> {
         for dep in self.deps {
             let to = format!("{}/{dep}", Self::DIST_PATH);
@@ -150,6 +178,19 @@ impl<'conf> Generator<'conf> {
 }
 
 #[derive(Deserialize)]
+struct Blog {
+    title: Box<str>,
+}
+
+impl Default for Blog {
+    fn default() -> Self {
+        Self {
+            title: Box::from("Blog title"),
+        }
+    }
+}
+
+#[derive(Deserialize)]
 struct Article {
     title: Box<str>,
 }
@@ -163,6 +204,7 @@ struct Social {
 type ArticleInfo = HashMap<Lang, Article>;
 
 struct Conf {
+    blog: Blog,
     articles: Vec<(Box<str>, ArticleInfo)>,
     social: Vec<Social>,
     local: Local,
@@ -171,7 +213,11 @@ struct Conf {
 fn read_conf() -> Result<Conf, Error> {
     #[derive(Deserialize)]
     struct Scheme {
+        #[serde(default)]
+        blog: Blog,
+        #[serde(default)]
         article: HashMap<Box<str>, ArticleInfo>,
+        #[serde(default)]
         social: Vec<Social>,
     }
 
@@ -197,6 +243,7 @@ fn read_conf() -> Result<Conf, Error> {
     };
 
     Ok(Conf {
+        blog: scheme.blog,
         articles,
         social: scheme.social,
         local,
