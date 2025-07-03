@@ -20,10 +20,10 @@ pub fn now() -> Date {
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Date {
-    day: u8,
+    pub day: u8,
     #[serde(with = "conv")]
-    month: Month,
-    year: i32,
+    pub month: Month,
+    pub year: i32,
 }
 
 impl Date {

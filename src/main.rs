@@ -98,7 +98,11 @@ impl<'conf> Generator<'conf> {
         let posts = &mut self.posts;
 
         move |lang, Article { title }| {
-            posts.entry(lang).or_default().push(Post { name, title });
+            posts.entry(lang).or_default().push(Post {
+                name,
+                title,
+                date: meta.date,
+            });
 
             if skip && meta.langs.contains(&lang) {
                 return Ok(());
@@ -140,17 +144,19 @@ impl<'conf> Generator<'conf> {
         }
     }
 
-    fn generate_list(&self) -> Result<(), Error> {
-        for (&lang, posts) in &self.posts {
+    fn generate_list(&mut self) -> Result<(), Error> {
+        for (&lang, posts) in &mut self.posts {
             let page_path = format!("{}/{lang}.html", Self::DIST_PATH);
             println!("generate {page_path}");
+
+            posts.sort_by_key(Post::by_date);
 
             let page = html::make(Make {
                 lang,
                 local: &self.conf.local,
                 title: &self.conf.blog.title,
                 social: &self.conf.social,
-                target: Target::List(&posts),
+                target: Target::List(posts),
             });
 
             write(&page_path, &page.into_string())?;

@@ -6,7 +6,7 @@ use {
     },
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
-    std::{collections::HashSet, fmt::Write, iter},
+    std::{cmp, collections::HashSet, fmt::Write, iter},
 };
 
 pub struct Make<'art> {
@@ -45,9 +45,22 @@ pub fn make(make: Make<'_>) -> maud::Markup {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Post<'art> {
     pub name: &'art str,
     pub title: &'art str,
+    pub date: Date,
+}
+
+impl Post<'_> {
+    pub fn by_date(&self) -> impl cmp::Ord + use<> {
+        let &Self {
+            date: Date { day, month, year },
+            ..
+        } = self;
+
+        (year, month as u8, day)
+    }
 }
 
 fn list(posts: &[Post<'_>], lang: Lang) -> maud::Markup {
@@ -55,7 +68,7 @@ fn list(posts: &[Post<'_>], lang: Lang) -> maud::Markup {
 
     maud::html! {
         ul .content.deferred.show {
-            @for Post { name, title } in posts {
+            @for Post { name, title, .. } in posts {
                 li .list-item {
                     a href=(href(name)) { (title) }
                 }
