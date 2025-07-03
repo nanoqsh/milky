@@ -90,6 +90,35 @@ impl fmt::Display for Error {
     }
 }
 
+pub trait Localize {
+    fn localize<'loc>(&self, l: Localizer<'loc>) -> Option<&'loc str>;
+}
+
+impl Localize for Month {
+    fn localize<'loc>(&self, l: Localizer<'loc>) -> Option<&'loc str> {
+        l.local.month_name(l.lang, *self)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Localizer<'loc> {
+    local: &'loc Local,
+    lang: Lang,
+}
+
+impl<'loc> Localizer<'loc> {
+    pub fn localize<L>(self, item: &L) -> Option<&'loc str>
+    where
+        L: Localize,
+    {
+        item.localize(self)
+    }
+
+    pub fn lang(self) -> Lang {
+        self.lang
+    }
+}
+
 #[derive(Deserialize)]
 pub struct Local(HashMap<Lang, Payload>);
 
@@ -98,7 +127,11 @@ impl Local {
         Self(HashMap::new())
     }
 
-    pub fn month_short_name(&self, month: Month, lang: Lang) -> Option<&str> {
+    pub fn bind(&self, lang: Lang) -> Localizer<'_> {
+        Localizer { local: self, lang }
+    }
+
+    fn month_name(&self, lang: Lang, month: Month) -> Option<&str> {
         let payload = self.0.get(&lang)?;
         Some(&payload.month[month as usize - 1])
     }

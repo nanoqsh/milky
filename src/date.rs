@@ -1,5 +1,5 @@
 use {
-    crate::lang::{Lang, Local},
+    crate::lang::Localizer,
     serde::{Deserialize, Serialize},
     std::fmt::Write,
     time::{Month, OffsetDateTime},
@@ -27,14 +27,14 @@ pub struct Date {
 }
 
 impl Date {
-    pub fn render(self, local: &Local, lang: Lang) -> impl maud::Render {
-        struct Render<'local>(Date, &'local Local, Lang);
+    pub fn render(self, l: Localizer<'_>) -> impl maud::Render {
+        struct Render<'loc>(Date, Localizer<'loc>);
 
         impl maud::Render for Render<'_> {
             fn render_to(&self, buffer: &mut String) {
-                let Self(Date { day, month, year }, local, lang) = self;
-                let month_name = local.month_short_name(*month, *lang).unwrap_or_else(|| {
-                    eprintln!("unknown month {month} for lang {lang}!");
+                let Self(Date { day, month, year }, l) = self;
+                let month_name = l.localize(month).unwrap_or_else(|| {
+                    eprintln!("unknown month {month} for lang {}!", l.lang());
                     "nul"
                 });
 
@@ -42,7 +42,7 @@ impl Date {
             }
         }
 
-        Render(self, local, lang)
+        Render(self, l)
     }
 }
 

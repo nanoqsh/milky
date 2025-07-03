@@ -142,8 +142,7 @@ impl<'conf> Generator<'conf> {
             });
 
             let page = html::make(Make {
-                lang,
-                local: &conf.local,
+                l: conf.local.bind(lang),
                 title,
                 translations: &mut translations,
                 social: &conf.social,
@@ -179,8 +178,7 @@ impl<'conf> Generator<'conf> {
                 });
 
             let page = html::make(Make {
-                lang,
-                local: &self.conf.local,
+                l: self.conf.local.bind(lang),
                 title: &self.conf.blog.title,
                 translations: &mut translations,
                 social: &self.conf.social,

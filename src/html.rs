@@ -3,7 +3,7 @@ use {
         Social,
         date::Date,
         icon::Icon,
-        lang::{Lang, Local},
+        lang::{Lang, Localizer},
     },
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
@@ -11,8 +11,7 @@ use {
 };
 
 pub struct Make<'art> {
-    pub lang: Lang,
-    pub local: &'art Local,
+    pub l: Localizer<'art>,
     pub title: &'art str,
     pub translations: Translations<'art>,
     pub social: &'art [Social],
@@ -30,8 +29,7 @@ pub enum Target<'art> {
 
 pub fn make(make: Make<'_>) -> maud::Markup {
     let Make {
-        lang,
-        local,
+        l,
         title,
         translations,
         social,
@@ -41,11 +39,11 @@ pub fn make(make: Make<'_>) -> maud::Markup {
     match target {
         Target::List(posts) => {
             let subtitle = subtitle(maud::html! {}, translations, 0);
-            page(title, list(posts, local, lang), subtitle, social, 0)
+            page(title, list(posts, l), subtitle, social, 0)
         }
         Target::Article { md, date, deps } => {
             let html = md_to_html(md, deps);
-            let date = date.render(local, lang);
+            let date = date.render(l);
             let subtitle = subtitle(date, translations, 1);
             page(title, article(&html), subtitle, social, 1)
         }
@@ -70,15 +68,15 @@ impl Post<'_> {
     }
 }
 
-fn list(posts: &[Post<'_>], local: &Local, lang: Lang) -> maud::Markup {
-    let href = |name| format!("{lang}/{name}.html");
+fn list(posts: &[Post<'_>], l: Localizer<'_>) -> maud::Markup {
+    let href = |name| format!("{}/{name}.html", l.lang());
 
     maud::html! {
         ul .content.deferred.show {
             @for Post { name, title, date } in posts {
                 li .list-item {
                     a href=(href(name)) { (title) }
-                    .date { (date.render(local, lang)) }
+                    .date { (date.render(l)) }
                 }
             }
         }
