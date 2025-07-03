@@ -6,7 +6,7 @@ mod lang;
 use {
     crate::{
         date::Date,
-        html::{Make, Post, Target},
+        html::{Make, Post, Target, Translation},
         icon::Icon,
         lang::{Lang, Local},
     },
@@ -38,13 +38,24 @@ fn run(force: bool) -> Result<(), Error> {
     for (name, info) in &conf.articles {
         let mut generate = gener.generate(name);
         for (&lang, article) in info {
-            generate(lang, article)?;
+            let mut more = info.keys().filter(|l| **l != lang).copied();
+            let langs = Langs {
+                lang,
+                more: &mut more,
+            };
+
+            generate(langs, article)?;
         }
     }
 
     gener.generate_list()?;
     gener.save()?;
     Ok(())
+}
+
+struct Langs<'it> {
+    lang: Lang,
+    more: &'it mut dyn Iterator<Item = Lang>,
 }
 
 struct Generator<'conf> {
@@ -81,7 +92,7 @@ impl<'conf> Generator<'conf> {
     fn generate(
         &mut self,
         name: &'conf str,
-    ) -> impl FnMut(Lang, &'conf Article) -> Result<(), Error> {
+    ) -> impl FnMut(Langs<'_>, &'conf Article) -> Result<(), Error> {
         let skip = !self.rerender;
         let meta = self
             .meta
@@ -97,7 +108,7 @@ impl<'conf> Generator<'conf> {
         let langs = &mut self.langs;
         let posts = &mut self.posts;
 
-        move |lang, Article { title }| {
+        move |Langs { lang, more }, Article { title }| {
             posts.entry(lang).or_default().push(Post {
                 name,
                 title,
@@ -125,10 +136,16 @@ impl<'conf> Generator<'conf> {
                 Read::Failed(e) => return Err(e),
             };
 
+            let mut translations = more.map(|lang| Translation {
+                lang,
+                href: format!("{lang}/{name}.html"),
+            });
+
             let page = html::make(Make {
                 lang,
                 local: &conf.local,
                 title,
+                translations: &mut translations,
                 social: &conf.social,
                 target: Target::Article {
                     md: &md,
@@ -151,10 +168,21 @@ impl<'conf> Generator<'conf> {
 
             posts.sort_by_key(Post::by_date);
 
+            let mut translations = self
+                .langs
+                .iter()
+                .copied()
+                .filter(|l| *l != lang)
+                .map(|lang| Translation {
+                    lang,
+                    href: format!("{lang}.html"),
+                });
+
             let page = html::make(Make {
                 lang,
                 local: &self.conf.local,
                 title: &self.conf.blog.title,
+                translations: &mut translations,
                 social: &self.conf.social,
                 target: Target::List(posts),
             });

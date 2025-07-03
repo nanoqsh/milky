@@ -14,6 +14,7 @@ pub struct Make<'art> {
     pub lang: Lang,
     pub local: &'art Local,
     pub title: &'art str,
+    pub translations: Translations<'art>,
     pub social: &'art [Social],
     pub target: Target<'art>,
 }
@@ -32,19 +33,20 @@ pub fn make(make: Make<'_>) -> maud::Markup {
         lang,
         local,
         title,
+        translations,
         social,
         target,
     } = make;
 
     match target {
         Target::List(posts) => {
-            let subtitle = subtitle(maud::html! {}, []);
+            let subtitle = subtitle(maud::html! {}, translations, 0);
             page(title, list(posts, local, lang), subtitle, social, 0)
         }
         Target::Article { md, date, deps } => {
             let html = md_to_html(md, deps);
             let date = date.render(local, lang);
-            let subtitle = subtitle(date, []);
+            let subtitle = subtitle(date, translations, 1);
             page(title, article(&html), subtitle, social, 1)
         }
     }
@@ -89,22 +91,23 @@ fn article(article: &str) -> maud::Markup {
     }
 }
 
-struct Translation<'art> {
-    label: &'art str,
-    href: &'art str,
+type Translations<'art> = &'art mut dyn Iterator<Item = Translation>;
+
+pub struct Translation {
+    pub lang: Lang,
+    pub href: String,
 }
 
-fn subtitle<'art, D, T>(date: D, translations: T) -> maud::Markup
+fn subtitle<D>(date: D, translations: Translations<'_>, level: u8) -> maud::Markup
 where
     D: maud::Render,
-    T: IntoIterator<Item = Translation<'art>>,
 {
     maud::html! {
         .hor {
             .date { (date) }
             .hor {
-                @for Translation { label, href } in translations {
-                    a .hor.button href=(href) { (Icon::Tooltip) (label) }
+                @for Translation { lang, href } in translations {
+                    a .hor.button href=(relative_path(&href, level)) { (Icon::Tooltip) (lang) }
                 }
             }
         }
