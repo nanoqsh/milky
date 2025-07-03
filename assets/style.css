@@ -68,7 +68,7 @@ header {
     text-align: center;
 }
 
-header .date {
+.date {
     font-size: 1.2rem;
     text-align: left;
     color: var(--code);
@@ -99,6 +99,7 @@ article img {
 }
 
 .list-item {
+    margin: var(--pad) 0;
     font-weight: bold;
     font-size: 2rem;
     list-style-type: none;

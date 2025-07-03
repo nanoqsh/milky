@@ -36,7 +36,7 @@ pub fn make(make: Make<'_>) -> maud::Markup {
     } = make;
 
     match target {
-        Target::List(posts) => page(title, list(posts, lang), maud::html! {}, social, 0),
+        Target::List(posts) => page(title, list(posts, local, lang), maud::html! {}, social, 0),
         Target::Article { md, date, deps } => {
             let date = date.render(local, lang);
             let html = md_to_html(md, deps);
@@ -63,14 +63,15 @@ impl Post<'_> {
     }
 }
 
-fn list(posts: &[Post<'_>], lang: Lang) -> maud::Markup {
+fn list(posts: &[Post<'_>], local: &Local, lang: Lang) -> maud::Markup {
     let href = |name| format!("{lang}/{name}.html");
 
     maud::html! {
         ul .content.deferred.show {
-            @for Post { name, title, .. } in posts {
+            @for Post { name, title, date } in posts {
                 li .list-item {
                     a href=(href(name)) { (title) }
+                    .date { (date.render(local, lang)) }
                 }
             }
         }
