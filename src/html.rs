@@ -2,6 +2,7 @@ use {
     crate::{
         Social,
         date::Date,
+        icon::Icon,
         lang::{Lang, Local},
     },
     proc_macro2::{Span, TokenStream, TokenTree},
@@ -36,11 +37,15 @@ pub fn make(make: Make<'_>) -> maud::Markup {
     } = make;
 
     match target {
-        Target::List(posts) => page(title, list(posts, local, lang), maud::html! {}, social, 0),
+        Target::List(posts) => {
+            let subtitle = subtitle(maud::html! {}, []);
+            page(title, list(posts, local, lang), subtitle, social, 0)
+        }
         Target::Article { md, date, deps } => {
-            let date = date.render(local, lang);
             let html = md_to_html(md, deps);
-            page(title, article(&html), date, social, 1)
+            let date = date.render(local, lang);
+            let subtitle = subtitle(date, []);
+            page(title, article(&html), subtitle, social, 1)
         }
     }
 }
@@ -84,10 +89,32 @@ fn article(article: &str) -> maud::Markup {
     }
 }
 
-fn page<C, D>(title: &str, content: C, date: D, social: &[Social], level: u8) -> maud::Markup
+struct Translation<'art> {
+    label: &'art str,
+    href: &'art str,
+}
+
+fn subtitle<'art, D, T>(date: D, translations: T) -> maud::Markup
+where
+    D: maud::Render,
+    T: IntoIterator<Item = Translation<'art>>,
+{
+    maud::html! {
+        .hor {
+            .date { (date) }
+            .hor {
+                @for Translation { label, href } in translations {
+                    a .hor.button href=(href) { (Icon::Tooltip) (label) }
+                }
+            }
+        }
+    }
+}
+
+fn page<C, S>(title: &str, content: C, subtitle: S, social: &[Social], level: u8) -> maud::Markup
 where
     C: maud::Render,
-    D: maud::Render,
+    S: maud::Render,
 {
     maud::html! {
         (maud::DOCTYPE)
@@ -105,7 +132,7 @@ where
             script { (maud::PreEscaped(include_str!("../assets/show.js"))) }
             header .content.deferred.show {
                 h1 { (title) }
-                .date { (date) }
+                (subtitle)
             }
             (content)
             footer .deferred.show {

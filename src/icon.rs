@@ -8,6 +8,7 @@ pub enum Icon {
     Discord,
     Github,
     X,
+    Tooltip,
 }
 
 impl Icon {
@@ -16,6 +17,7 @@ impl Icon {
             "ds" => Ok(Self::Discord),
             "gh" => Ok(Self::Github),
             "x" => Ok(Self::X),
+            "tt" => Ok(Self::Tooltip),
             _ => Err(UnknownIcon),
         }
     }
@@ -25,6 +27,7 @@ impl Icon {
             Self::Discord => include_str!("../icons/discord.svg"),
             Self::Github => include_str!("../icons/github.svg"),
             Self::X => include_str!("../icons/x.svg"),
+            Self::Tooltip => include_str!("../icons/tooltip.svg"),
         }
     }
 
@@ -33,6 +36,7 @@ impl Icon {
             Self::Discord => "Discord",
             Self::Github => "GitHub",
             Self::X => "Twitter",
+            Self::Tooltip => "Tooltip",
         }
     }
 }

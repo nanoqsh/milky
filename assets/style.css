@@ -13,6 +13,7 @@
     --border: 4px;
     --pad: 1.5rem;
     --width: 870px;
+    --button-height: 30px;
 }
 
 ::selection {
@@ -56,6 +57,41 @@ h3 {
     font-size: 1.5rem;
 }
 
+.hor {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.button {
+    margin-left: 1rem;
+    padding: 0 1rem;
+    background: var(--bgcode);
+    color: var(--fg);
+    border-radius: calc(var(--button-height) / 2);
+    font-size: 1.2rem;
+    line-height: var(--button-height);
+    height: var(--button-height);
+    cursor: pointer;
+    text-decoration: none !important;
+}
+
+.button:hover {
+    color: var(--li);
+}
+
+.button svg {
+    margin-right: 4px;
+    width: 20px;
+    height: 20px;
+    fill: var(--fg);
+    transition: fill 0.2s ease;
+}
+
+.button:hover svg {
+    fill: var(--li);
+}
+
 .content {
     width: 100%;
     max-width: var(--width);
@@ -70,7 +106,6 @@ header {
 
 .date {
     font-size: 1.2rem;
-    text-align: left;
     color: var(--code);
 }
 
