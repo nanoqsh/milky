@@ -56,7 +56,7 @@ fn list(posts: &[Post<'_>], lang: Lang) -> maud::Markup {
     maud::html! {
         ul .content.deferred.show {
             @for Post { name, title } in posts {
-                li {
+                li .list-item {
                     a href=(href(name)) { (title) }
                 }
             }
