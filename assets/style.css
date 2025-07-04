@@ -133,6 +133,11 @@ article img {
     border-radius: var(--border);
 }
 
+article li {
+    list-style: none;
+    margin-left: var(--pad);
+}
+
 .list-item {
     margin: var(--pad) 0;
     font-weight: bold;

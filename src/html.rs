@@ -192,8 +192,8 @@ fn md_to_html(md: &str, deps: &mut HashSet<Box<str>>) -> String {
                 }
             }
             Event::Start(Tag::HtmlBlock) => todo!(),
-            Event::Start(Tag::List(_)) => todo!(),
-            Event::Start(Tag::Item) => todo!(),
+            Event::Start(Tag::List(_)) => html.push_str("<ul>"),
+            Event::Start(Tag::Item) => html.push_str("<li>"),
             Event::Start(Tag::FootnoteDefinition(_)) => todo!(),
             Event::Start(Tag::DefinitionList) => todo!(),
             Event::Start(Tag::DefinitionListTitle) => todo!(),
@@ -236,8 +236,8 @@ fn md_to_html(md: &str, deps: &mut HashSet<Box<str>>) -> String {
                 html.push_str("</code></pre>");
             }
             Event::End(TagEnd::HtmlBlock) => todo!(),
-            Event::End(TagEnd::List(_)) => todo!(),
-            Event::End(TagEnd::Item) => todo!(),
+            Event::End(TagEnd::List(_)) => html.push_str("</ul>"),
+            Event::End(TagEnd::Item) => html.push_str("</li>"),
             Event::End(TagEnd::FootnoteDefinition) => todo!(),
             Event::End(TagEnd::DefinitionList) => todo!(),
             Event::End(TagEnd::DefinitionListTitle) => todo!(),
