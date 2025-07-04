@@ -105,7 +105,7 @@ where
             .date { (date) }
             .hor {
                 @for Translation { lang, href } in translations {
-                    a .hor.button href=(relative_path(&href, level)) { (Icon::Tooltip) (lang) }
+                    a .hor.button href=(relative_path(&href, level)) { (Icon::Earth) (lang) }
                 }
             }
         }

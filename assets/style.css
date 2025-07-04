@@ -65,7 +65,7 @@ h3 {
 
 .button {
     margin-left: 1rem;
-    padding: 0 1rem;
+    padding: 0 0.8rem;
     background: var(--bgcode);
     color: var(--fg);
     border-radius: calc(var(--button-height) / 2);
