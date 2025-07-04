@@ -100,6 +100,14 @@ impl Localize for Month {
     }
 }
 
+pub struct AllPosts;
+
+impl Localize for AllPosts {
+    fn localize<'loc>(&self, l: Localizer<'loc>) -> Option<&'loc str> {
+        l.local.all_posts(l.lang)
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Localizer<'loc> {
     local: &'loc Local,
@@ -135,9 +143,15 @@ impl Local {
         let payload = self.0.get(&lang)?;
         Some(&payload.month[month as usize - 1])
     }
+
+    fn all_posts(&self, lang: Lang) -> Option<&str> {
+        let payload = self.0.get(&lang)?;
+        Some(&payload.all)
+    }
 }
 
 #[derive(Deserialize)]
 struct Payload {
+    all: Box<str>,
     month: [Box<str>; 12],
 }

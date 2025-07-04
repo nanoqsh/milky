@@ -12,6 +12,7 @@ use {
     },
     serde::{Deserialize, Serialize},
     std::{
+        cmp::Reverse,
         collections::{HashMap, HashSet},
         env, fs,
         io::{Error, ErrorKind},
@@ -143,12 +144,14 @@ impl<'conf> Generator<'conf> {
 
             let page = html::make(Make {
                 l: conf.local.bind(lang),
+                blog: &conf.blog.title,
                 title,
                 translations: &mut translations,
                 social: &conf.social,
                 target: Target::Article {
                     md: &md,
                     date: meta.date,
+                    index_href: format!("{lang}.html"),
                     deps,
                 },
             });
@@ -165,7 +168,7 @@ impl<'conf> Generator<'conf> {
             let page_path = format!("{}/{lang}.html", Self::DIST_PATH);
             println!("generate {page_path}");
 
-            posts.sort_by_key(Post::by_date);
+            posts.sort_by_key(|p| Reverse(p.by_date()));
 
             let mut translations = self
                 .langs
@@ -179,7 +182,8 @@ impl<'conf> Generator<'conf> {
 
             let page = html::make(Make {
                 l: self.conf.local.bind(lang),
-                title: &self.conf.blog.title,
+                blog: &self.conf.blog.title,
+                title: "",
                 translations: &mut translations,
                 social: &self.conf.social,
                 target: Target::List(posts),

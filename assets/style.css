@@ -64,7 +64,7 @@ h3 {
 }
 
 .button {
-    margin-left: 1rem;
+    margin-left: calc(var(--pad) / 2);
     padding: 0 0.8rem;
     background: var(--bgcode);
     color: var(--fg);

@@ -3,7 +3,7 @@ use {
         Social,
         date::Date,
         icon::Icon,
-        lang::{Lang, Localizer},
+        lang::{AllPosts, Lang, Localizer},
     },
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
@@ -12,6 +12,7 @@ use {
 
 pub struct Make<'art> {
     pub l: Localizer<'art>,
+    pub blog: &'art str,
     pub title: &'art str,
     pub translations: Translations<'art>,
     pub social: &'art [Social],
@@ -23,6 +24,7 @@ pub enum Target<'art> {
     Article {
         md: &'art str,
         date: Date,
+        index_href: String,
         deps: &'art mut HashSet<Box<str>>,
     },
 }
@@ -30,6 +32,7 @@ pub enum Target<'art> {
 pub fn make(make: Make<'_>) -> maud::Markup {
     let Make {
         l,
+        blog,
         title,
         translations,
         social,
@@ -38,14 +41,22 @@ pub fn make(make: Make<'_>) -> maud::Markup {
 
     match target {
         Target::List(posts) => {
-            let subtitle = subtitle(maud::html! {}, translations, 0);
-            page(title, list(posts, l), subtitle, social, 0)
+            let subtitle = subtitle(maud::html! {}, None, translations, 0);
+            let header = header(blog, title, subtitle);
+            page(title, header, list(posts, l), social, 0)
         }
-        Target::Article { md, date, deps } => {
+        Target::Article {
+            md,
+            date,
+            index_href,
+            deps,
+        } => {
             let html = md_to_html(md, deps);
             let date = date.render(l);
-            let subtitle = subtitle(date, translations, 1);
-            page(title, article(&html), subtitle, social, 1)
+            let all_posts = l.localize(&AllPosts).unwrap_or_default();
+            let subtitle = subtitle(date, Some((&index_href, all_posts)), translations, 1);
+            let header = header(blog, title, subtitle);
+            page(title, header, article(&html), social, 1)
         }
     }
 }
@@ -96,7 +107,12 @@ pub struct Translation {
     pub href: String,
 }
 
-fn subtitle<D>(date: D, translations: Translations<'_>, level: u8) -> maud::Markup
+fn subtitle<D>(
+    date: D,
+    all_posts: Option<(&str, &str)>,
+    translations: Translations<'_>,
+    level: u8,
+) -> maud::Markup
 where
     D: maud::Render,
 {
@@ -104,6 +120,10 @@ where
         .hor {
             .date { (date) }
             .hor {
+                @if let Some((href, label)) = all_posts {
+                    a .hor.button href=(relative_path(href, level)) { (Icon::Bookshelf) (label) }
+                }
+
                 @for Translation { lang, href } in translations {
                     a .hor.button href=(relative_path(&href, level)) { (Icon::Earth) (lang) }
                 }
@@ -112,10 +132,23 @@ where
     }
 }
 
-fn page<C, S>(title: &str, content: C, subtitle: S, social: &[Social], level: u8) -> maud::Markup
+fn header<S>(blog: &str, title: &str, subtitle: S) -> maud::Markup
 where
-    C: maud::Render,
     S: maud::Render,
+{
+    maud::html! {
+        header .content.deferred.show {
+            h1 { (blog) }
+            h2 { (title) }
+            (subtitle)
+        }
+    }
+}
+
+fn page<H, C>(title: &str, header: H, content: C, social: &[Social], level: u8) -> maud::Markup
+where
+    H: maud::Render,
+    C: maud::Render,
 {
     maud::html! {
         (maud::DOCTYPE)
@@ -131,10 +164,7 @@ where
         body {
             style { (maud::PreEscaped(include_str!("../assets/inline.css"))) }
             script { (maud::PreEscaped(include_str!("../assets/show.js"))) }
-            header .content.deferred.show {
-                h1 { (title) }
-                (subtitle)
-            }
+            (header)
             (content)
             footer .deferred.show {
                 .socials {

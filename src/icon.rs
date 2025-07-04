@@ -9,6 +9,7 @@ pub enum Icon {
     Github,
     X,
     Earth,
+    Bookshelf,
 }
 
 impl Icon {
@@ -18,6 +19,7 @@ impl Icon {
             "gh" => Ok(Self::Github),
             "x" => Ok(Self::X),
             "ea" => Ok(Self::Earth),
+            "bs" => Ok(Self::Bookshelf),
             _ => Err(UnknownIcon),
         }
     }
@@ -28,6 +30,7 @@ impl Icon {
             Self::Github => include_str!("../icons/github.svg"),
             Self::X => include_str!("../icons/x.svg"),
             Self::Earth => include_str!("../icons/earth.svg"),
+            Self::Bookshelf => include_str!("../icons/bookshelf.svg"),
         }
     }
 
@@ -37,6 +40,7 @@ impl Icon {
             Self::Github => "GitHub",
             Self::X => "Twitter",
             Self::Earth => "Earth",
+            Self::Bookshelf => "Bookshelf",
         }
     }
 }
