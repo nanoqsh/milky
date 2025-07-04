@@ -133,9 +133,15 @@ article img {
     border-radius: var(--border);
 }
 
+article ul {
+    margin: var(--pad) 0;
+    line-height: 1.5rem;
+}
+
 article li {
-    list-style: none;
-    margin-left: var(--pad);
+    margin-top: calc(var(--pad) / 2);
+    margin-bottom: calc(var(--pad) / 2);
+    margin-left: calc(var(--pad) * 2);
 }
 
 .list-item {

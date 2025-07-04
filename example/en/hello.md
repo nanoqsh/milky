@@ -1,6 +1,6 @@
 ## Hello, html!
 
-Hmm.. want some prime numbers?
+Hmm.. want some *prime* **numbers**?
 
 ```rust
 /// Generates prime numbers
@@ -16,6 +16,9 @@ fn primes() -> impl Iterator<Item = u64> {
 }
 ```
 
-Post some image
+Todo:
+* Post some image
+* ???
+* Profit!
 
 ![](post.jpg)
