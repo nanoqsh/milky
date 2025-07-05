@@ -8,8 +8,9 @@ pub enum Icon {
     Discord,
     Github,
     X,
-    Earth,
     Bookshelf,
+    Date,
+    Earth,
 }
 
 impl Icon {
@@ -18,8 +19,9 @@ impl Icon {
             "ds" => Ok(Self::Discord),
             "gh" => Ok(Self::Github),
             "x" => Ok(Self::X),
-            "ea" => Ok(Self::Earth),
             "bs" => Ok(Self::Bookshelf),
+            "dt" => Ok(Self::Date),
+            "ea" => Ok(Self::Earth),
             _ => Err(UnknownIcon),
         }
     }
@@ -29,8 +31,9 @@ impl Icon {
             Self::Discord => include_str!("../icons/discord.svg"),
             Self::Github => include_str!("../icons/github.svg"),
             Self::X => include_str!("../icons/x.svg"),
-            Self::Earth => include_str!("../icons/earth.svg"),
             Self::Bookshelf => include_str!("../icons/bookshelf.svg"),
+            Self::Date => include_str!("../icons/date.svg"),
+            Self::Earth => include_str!("../icons/earth.svg"),
         }
     }
 
@@ -39,8 +42,9 @@ impl Icon {
             Self::Discord => "Discord",
             Self::Github => "GitHub",
             Self::X => "Twitter",
-            Self::Earth => "Earth",
             Self::Bookshelf => "Bookshelf",
+            Self::Date => "Date",
+            Self::Earth => "Earth",
         }
     }
 }

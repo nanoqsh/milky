@@ -41,9 +41,10 @@ pub fn make(make: Make<'_>) -> maud::Markup {
 
     match target {
         Target::List(posts) => {
-            let subtitle = subtitle(maud::html! {}, None, translations, 0);
+            let placeholder = maud::html! { div {} };
+            let subtitle = subtitle(placeholder, None, translations, 0);
             let header = header(blog, title, subtitle);
-            page(title, header, list(posts, l), social, 0)
+            page(blog, header, list(posts, l), social, 0)
         }
         Target::Article {
             md,
@@ -52,7 +53,7 @@ pub fn make(make: Make<'_>) -> maud::Markup {
             deps,
         } => {
             let html = md_to_html(md, deps);
-            let date = date.render(l);
+            let date = show_date(date, l);
             let all_posts = l.localize(&AllPosts).unwrap_or_default();
             let subtitle = subtitle(date, Some((&index_href, all_posts)), translations, 1);
             let header = header(blog, title, subtitle);
@@ -87,7 +88,7 @@ fn list(posts: &[Post<'_>], l: Localizer<'_>) -> maud::Markup {
             @for Post { name, title, date } in posts {
                 li .list-item {
                     a href=(href(name)) { (title) }
-                    .date { (date.render(l)) }
+                    (show_date(*date, l))
                 }
             }
         }
@@ -107,6 +108,12 @@ pub struct Translation {
     pub href: String,
 }
 
+fn show_date(date: Date, l: Localizer<'_>) -> maud::Markup {
+    maud::html! {
+        .date { (date.render(l)) (Icon::Date) }
+    }
+}
+
 fn subtitle<D>(
     date: D,
     all_posts: Option<(&str, &str)>,
@@ -118,7 +125,7 @@ where
 {
     maud::html! {
         .hor {
-            .date { (date) }
+            (date)
             .hor {
                 @if let Some((href, label)) = all_posts {
                     a .hor.button href=(relative_path(href, level)) { (Icon::Bookshelf) (label) }
@@ -138,9 +145,11 @@ where
 {
     maud::html! {
         header .content.deferred.show {
-            h1 { (blog) }
-            h2 { (title) }
+            h1 .blog-title { (blog) }
             (subtitle)
+            @if !title.is_empty() {
+                h2 .title { (title) }
+            }
         }
     }
 }
@@ -157,7 +166,7 @@ where
             meta name="viewport" content="width=device-width, initial-scale=1.0";
             link rel="preconnect" href="https://fonts.googleapis.com";
             link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
-            link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
+            link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
             link rel="stylesheet" href=(relative_path("style.css", level));
             title { (title) }
         }
