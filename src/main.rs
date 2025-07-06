@@ -14,18 +14,14 @@ use {
     std::{
         cmp::Reverse,
         collections::{HashMap, HashSet},
-        env, fs,
+        fs,
         io::{Error, ErrorKind},
         process::ExitCode,
     },
 };
 
 fn main() -> ExitCode {
-    let force = env::args()
-        .skip(1)
-        .any(|arg| arg == "-f" || arg == "--force");
-
-    if let Err(e) = run(force) {
+    if let Err(e) = run() {
         eprintln!("error: {e}");
         ExitCode::FAILURE
     } else {
@@ -33,9 +29,9 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(force: bool) -> Result<(), Error> {
+fn run() -> Result<(), Error> {
     let conf = read_conf()?;
-    let mut gener = Generator::new(force, &conf)?;
+    let mut gener = Generator::new(&conf)?;
     for (name, info) in &conf.articles {
         let mut generate = gener.generate(name);
         for (&lang, article) in info {
@@ -62,7 +58,6 @@ struct Langs<'it> {
 struct Generator<'conf> {
     conf: &'conf Conf,
     meta: Meta,
-    rerender: bool,
     deps: HashSet<Box<str>>,
     langs: HashSet<Lang>,
     posts: HashMap<Lang, Vec<Post<'conf>>>,
@@ -71,19 +66,12 @@ struct Generator<'conf> {
 impl<'conf> Generator<'conf> {
     const DIST_PATH: &'static str = "dist";
 
-    fn new(force: bool, conf: &'conf Conf) -> Result<Self, Error> {
+    fn new(conf: &'conf Conf) -> Result<Self, Error> {
         create_dir_all(Self::DIST_PATH)?;
-
-        let mut meta = Meta::read()?;
-        let rerender = meta.version != Meta::VERSION || force;
-        if rerender {
-            meta.version = Meta::VERSION;
-        }
 
         Ok(Self {
             conf,
-            meta,
-            rerender,
+            meta: Meta::read()?,
             deps: HashSet::new(),
             langs: HashSet::new(),
             posts: HashMap::new(),
@@ -94,7 +82,6 @@ impl<'conf> Generator<'conf> {
         &mut self,
         name: &'conf str,
     ) -> impl FnMut(Langs<'_>, &'conf Article) -> Result<(), Error> {
-        let skip = !self.rerender;
         let meta = self
             .meta
             .articles
@@ -115,10 +102,6 @@ impl<'conf> Generator<'conf> {
                 title,
                 date: meta.date,
             });
-
-            if skip && meta.langs.contains(&lang) {
-                return Ok(());
-            }
 
             if langs.insert(lang) {
                 create_dir_all(&format!("{}/{lang}", Self::DIST_PATH))?;
@@ -203,7 +186,7 @@ impl<'conf> Generator<'conf> {
         }
 
         let style_path = "dist/style.css";
-        if self.rerender || !exists(style_path)? {
+        if !exists(style_path)? {
             println!("save style.css");
             write(style_path, include_str!("../assets/style.css"))?;
         }
