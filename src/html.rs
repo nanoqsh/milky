@@ -63,7 +63,7 @@ pub fn make(make: Make<'_>) -> maud::Markup {
                 iter::once(Button::articles(index_href, l)).chain(translations_into_buttons);
 
             let html = md_to_html(md, deps);
-            let date = show_date(date, l);
+            let date = date_block(date, l);
             let subtitle = subtitle(date, buttons, 1);
             let header = header(blog, title, subtitle);
             page(title, header, article(&html), social, 1)
@@ -97,7 +97,7 @@ fn list(posts: &[Post<'_>], l: Localizer<'_>) -> maud::Markup {
             @for Post { name, title, date } in posts {
                 li .list-item {
                     a href=(href(name)) { (title) }
-                    (show_date(*date, l))
+                    (date_block(*date, l))
                 }
             }
         }
@@ -110,7 +110,7 @@ fn article(article: &str) -> maud::Markup {
     }
 }
 
-fn show_date(date: Date, l: Localizer<'_>) -> maud::Markup {
+fn date_block(date: Date, l: Localizer<'_>) -> maud::Markup {
     maud::html! {
         .date { (date.render(l)) (Icon::Date) }
     }

@@ -12,7 +12,7 @@
     --code: #caaf7f;
     --border: 4px;
     --pad: 1.5rem;
-    --width: 870px;
+    --content-width: 870px;
     --button-height: 30px;
 }
 
@@ -24,6 +24,7 @@
 * {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
 }
 
 body {
@@ -122,8 +123,13 @@ h6 {
 
 .content {
     width: 100%;
-    max-width: var(--width);
-    padding: 0 1rem;
+    max-width: var(--content-width);
+}
+
+@media (max-width: 870px) {
+    .content {
+        padding: 0 calc(var(--pad) / 2);
+    }
 }
 
 header {
@@ -163,16 +169,11 @@ article p {
     line-height: 1.5rem;
 }
 
-@media (max-width: var(--width)) {
-    article p {
-        padding-left: 6px;
-        padding-right: 6px;
-    }
-}
-
 article img {
-    max-width: var(--width);
+    width: 100%;
+    max-width: var(--content-width);
     border-radius: var(--border);
+    object-fit: scale-down;
 }
 
 article ul {
@@ -197,6 +198,7 @@ code {
     color: var(--code);
     font-family: 'JetBrains Mono', monospace;
     font-size: 16px;
+    text-wrap: wrap;
 }
 
 code .kw {
