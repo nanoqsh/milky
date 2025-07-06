@@ -105,7 +105,7 @@ impl<'loc> Localizer<'loc> {
         &payload.month[month as usize - 1]
     }
 
-    pub fn articles(&self) -> &str {
+    pub fn articles(&self) -> &'loc str {
         let Some(payload) = self.local.get(self.lang) else {
             return "";
         };

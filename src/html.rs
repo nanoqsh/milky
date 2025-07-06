@@ -7,14 +7,19 @@ use {
     },
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
-    std::{cmp, collections::HashSet, fmt::Write, iter},
+    std::{borrow::Cow, cmp, collections::HashSet, fmt::Write, iter},
 };
+
+pub struct Translation {
+    pub lang: Lang,
+    pub href: String,
+}
 
 pub struct Make<'art> {
     pub l: Localizer<'art>,
     pub blog: &'art str,
     pub title: &'art str,
-    pub translations: Translations<'art>,
+    pub translations: &'art mut dyn Iterator<Item = Translation>,
     pub social: &'art [Social],
     pub target: Target<'art>,
 }
@@ -39,10 +44,12 @@ pub fn make(make: Make<'_>) -> maud::Markup {
         target,
     } = make;
 
+    let translations_into_buttons = translations.map(Button::from_translation);
+
     match target {
         Target::List(posts) => {
             let placeholder = maud::html! { div {} };
-            let subtitle = subtitle(placeholder, None, translations, 0);
+            let subtitle = subtitle(placeholder, translations_into_buttons, 0);
             let header = header(blog, title, subtitle);
             page(blog, header, list(posts, l), social, 0)
         }
@@ -52,9 +59,12 @@ pub fn make(make: Make<'_>) -> maud::Markup {
             index_href,
             deps,
         } => {
+            let buttons =
+                iter::once(Button::articles(index_href, l)).chain(translations_into_buttons);
+
             let html = md_to_html(md, deps);
             let date = show_date(date, l);
-            let subtitle = subtitle(date, Some((&index_href, l.articles())), translations, 1);
+            let subtitle = subtitle(date, buttons, 1);
             let header = header(blog, title, subtitle);
             page(title, header, article(&html), social, 1)
         }
@@ -100,38 +110,47 @@ fn article(article: &str) -> maud::Markup {
     }
 }
 
-type Translations<'art> = &'art mut dyn Iterator<Item = Translation>;
-
-pub struct Translation {
-    pub lang: Lang,
-    pub href: String,
-}
-
 fn show_date(date: Date, l: Localizer<'_>) -> maud::Markup {
     maud::html! {
         .date { (date.render(l)) (Icon::Date) }
     }
 }
 
-fn subtitle<D>(
-    date: D,
-    articles: Option<(&str, &str)>,
-    translations: Translations<'_>,
-    level: u8,
-) -> maud::Markup
+struct Button<'art> {
+    icon: Icon,
+    label: Cow<'art, str>,
+    href: String,
+}
+
+impl<'art> Button<'art> {
+    fn from_translation(Translation { lang, href }: Translation) -> Self {
+        Self {
+            icon: Icon::Earth,
+            label: Cow::Owned(lang.to_string()),
+            href,
+        }
+    }
+
+    fn articles(href: String, l: Localizer<'art>) -> Self {
+        Self {
+            icon: Icon::Bookshelf,
+            label: Cow::Borrowed(l.articles()),
+            href,
+        }
+    }
+}
+
+fn subtitle<'art, D, B>(date: D, buttons: B, level: u8) -> maud::Markup
 where
     D: maud::Render,
+    B: IntoIterator<Item = Button<'art>>,
 {
     maud::html! {
         .hor {
             (date)
             .hor {
-                @if let Some((href, label)) = articles {
-                    a .hor.button href=(relative_path(href, level)) { (Icon::Bookshelf) (label) }
-                }
-
-                @for Translation { lang, href } in translations {
-                    a .hor.button href=(relative_path(&href, level)) { (Icon::Earth) (lang) }
+                @for Button { icon, label, href } in buttons {
+                    a .hor.button href=(relative_path(&href, level)) { (icon) (label) }
                 }
             }
         }
