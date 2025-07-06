@@ -127,8 +127,14 @@ h6 {
 }
 
 @media (max-width: 870px) {
-    .content {
-        padding: 0 calc(var(--pad) / 2);
+    .content>* {
+        padding-left: calc(var(--pad) / 2);
+        padding-right: calc(var(--pad) / 2);
+    }
+
+    .content>pre {
+        padding: var(--pad);
+        border-radius: 0;
     }
 }
 
@@ -162,6 +168,7 @@ article pre {
     overflow: scroll;
     background: var(--bgcode);
     border-radius: var(--border);
+    text-wrap: wrap;
 }
 
 article p {
@@ -173,7 +180,6 @@ article img {
     width: 100%;
     max-width: var(--content-width);
     border-radius: var(--border);
-    object-fit: scale-down;
 }
 
 article ul {
@@ -198,7 +204,6 @@ code {
     color: var(--code);
     font-family: 'JetBrains Mono', monospace;
     font-size: 16px;
-    text-wrap: wrap;
 }
 
 code .kw {
