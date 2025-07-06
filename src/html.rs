@@ -3,7 +3,7 @@ use {
         Social,
         date::Date,
         icon::Icon,
-        lang::{AllPosts, Lang, Localizer},
+        lang::{Lang, Localizer},
     },
     proc_macro2::{Span, TokenStream, TokenTree},
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
@@ -54,8 +54,7 @@ pub fn make(make: Make<'_>) -> maud::Markup {
         } => {
             let html = md_to_html(md, deps);
             let date = show_date(date, l);
-            let all_posts = l.localize(&AllPosts).unwrap_or_default();
-            let subtitle = subtitle(date, Some((&index_href, all_posts)), translations, 1);
+            let subtitle = subtitle(date, Some((&index_href, l.articles())), translations, 1);
             let header = header(blog, title, subtitle);
             page(title, header, article(&html), social, 1)
         }
@@ -116,7 +115,7 @@ fn show_date(date: Date, l: Localizer<'_>) -> maud::Markup {
 
 fn subtitle<D>(
     date: D,
-    all_posts: Option<(&str, &str)>,
+    articles: Option<(&str, &str)>,
     translations: Translations<'_>,
     level: u8,
 ) -> maud::Markup
@@ -127,7 +126,7 @@ where
         .hor {
             (date)
             .hor {
-                @if let Some((href, label)) = all_posts {
+                @if let Some((href, label)) = articles {
                     a .hor.button href=(relative_path(href, level)) { (Icon::Bookshelf) (label) }
                 }
 

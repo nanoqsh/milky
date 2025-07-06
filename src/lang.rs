@@ -90,24 +90,6 @@ impl fmt::Display for Error {
     }
 }
 
-pub trait Localize {
-    fn localize<'loc>(&self, l: Localizer<'loc>) -> Option<&'loc str>;
-}
-
-impl Localize for Month {
-    fn localize<'loc>(&self, l: Localizer<'loc>) -> Option<&'loc str> {
-        l.local.month_name(l.lang, *self)
-    }
-}
-
-pub struct AllPosts;
-
-impl Localize for AllPosts {
-    fn localize<'loc>(&self, l: Localizer<'loc>) -> Option<&'loc str> {
-        l.local.all_posts(l.lang)
-    }
-}
-
 #[derive(Clone, Copy)]
 pub struct Localizer<'loc> {
     local: &'loc Local,
@@ -115,11 +97,20 @@ pub struct Localizer<'loc> {
 }
 
 impl<'loc> Localizer<'loc> {
-    pub fn localize<L>(self, item: &L) -> Option<&'loc str>
-    where
-        L: Localize,
-    {
-        item.localize(self)
+    pub fn month(&self, month: Month) -> &str {
+        let Some(payload) = self.local.get(self.lang) else {
+            return "";
+        };
+
+        &payload.month[month as usize - 1]
+    }
+
+    pub fn articles(&self) -> &str {
+        let Some(payload) = self.local.get(self.lang) else {
+            return "";
+        };
+
+        &payload.articles
     }
 
     pub fn lang(self) -> Lang {
@@ -139,19 +130,13 @@ impl Local {
         Localizer { local: self, lang }
     }
 
-    fn month_name(&self, lang: Lang, month: Month) -> Option<&str> {
-        let payload = self.0.get(&lang)?;
-        Some(&payload.month[month as usize - 1])
-    }
-
-    fn all_posts(&self, lang: Lang) -> Option<&str> {
-        let payload = self.0.get(&lang)?;
-        Some(&payload.all)
+    fn get(&self, lang: Lang) -> Option<&Payload> {
+        self.0.get(&lang)
     }
 }
 
 #[derive(Deserialize)]
 struct Payload {
-    all: Box<str>,
+    articles: Box<str>,
     month: [Box<str>; 12],
 }

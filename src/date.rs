@@ -33,11 +33,7 @@ impl Date {
         impl maud::Render for Render<'_> {
             fn render_to(&self, buffer: &mut String) {
                 let Self(Date { day, month, year }, l) = self;
-                let month_name = l.localize(month).unwrap_or_else(|| {
-                    eprintln!("unknown month {month} for lang {}!", l.lang());
-                    "nul"
-                });
-
+                let month_name = l.month(*month);
                 _ = write!(buffer, "{day} {month_name} {year}");
             }
         }

@@ -1,5 +1,5 @@
 [ru]
-all = "все статьи"
+articles = "статьи"
 month = [
     "янв",
     "фев",
@@ -16,7 +16,7 @@ month = [
 ]
 
 [en]
-all = "all articles"
+articles = "articles"
 month = [
     "jan",
     "feb",
