@@ -116,6 +116,21 @@ fn show_date(date: Date, l: Localizer<'_>) -> maud::Markup {
     }
 }
 
+fn header<S>(blog: &str, title: &str, subtitle: S) -> maud::Markup
+where
+    S: maud::Render,
+{
+    maud::html! {
+        header .content.deferred.show {
+            .blog-title { (blog) }
+            (subtitle)
+            @if !title.is_empty() {
+                h1 .title { (title) }
+            }
+        }
+    }
+}
+
 struct Button<'art> {
     icon: Icon,
     label: Cow<'art, str>,
@@ -152,21 +167,6 @@ where
                 @for Button { icon, label, href } in buttons {
                     a .hor.button href=(relative_path(&href, level)) { (icon) (label) }
                 }
-            }
-        }
-    }
-}
-
-fn header<S>(blog: &str, title: &str, subtitle: S) -> maud::Markup
-where
-    S: maud::Render,
-{
-    maud::html! {
-        header .content.deferred.show {
-            h1 .blog-title { (blog) }
-            (subtitle)
-            @if !title.is_empty() {
-                h2 .title { (title) }
             }
         }
     }
