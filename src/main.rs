@@ -16,6 +16,7 @@ use {
         collections::{HashMap, HashSet},
         fs,
         io::{Error, ErrorKind},
+        path::Path,
         process::ExitCode,
     },
 };
@@ -185,10 +186,15 @@ impl<'conf> Generator<'conf> {
             copy(&dep, &to)?;
         }
 
-        let style_path = "dist/style.css";
-        if !exists(style_path)? {
-            println!("save style.css");
-            write(style_path, include_str!("../assets/style.css"))?;
+        let assets = [
+            ("dist/style.css", include_str!("../assets/style.css")),
+            ("dist/favicon.svg", include_str!("../assets/favicon.svg")),
+        ];
+
+        for (path, contents) in assets {
+            let name = Path::new(path).file_name().unwrap_or_default();
+            println!("save {}", name.display());
+            write(path, contents)?;
         }
 
         self.meta.write()?;
@@ -353,10 +359,6 @@ fn write(path: &str, contents: &str) -> Result<(), Error> {
 
 fn create_dir_all(path: &str) -> Result<(), Error> {
     fs::create_dir_all(path).inspect_err(|_| eprintln!("failed to create {path} directory"))
-}
-
-fn exists(path: &str) -> Result<bool, Error> {
-    fs::exists(path).inspect_err(|_| eprintln!("failed to check path {path}"))
 }
 
 fn copy(from: &str, to: &str) -> Result<(), Error> {
