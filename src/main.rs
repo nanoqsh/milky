@@ -14,7 +14,7 @@ use {
     serde::{Deserialize, Serialize},
     std::{
         cmp::Reverse,
-        collections::{BTreeSet, HashMap, HashSet},
+        collections::{BTreeMap, BTreeSet, HashMap, HashSet},
         fs,
         io::{Error, ErrorKind},
         path::Path,
@@ -286,7 +286,7 @@ struct ArticleMeta {
 #[derive(Serialize, Deserialize)]
 struct Meta {
     version: u32,
-    articles: HashMap<String, ArticleMeta>,
+    articles: BTreeMap<String, ArticleMeta>,
 }
 
 impl Meta {
@@ -295,7 +295,7 @@ impl Meta {
     fn new() -> Self {
         Self {
             version: Self::VERSION,
-            articles: HashMap::new(),
+            articles: BTreeMap::new(),
         }
     }
 
