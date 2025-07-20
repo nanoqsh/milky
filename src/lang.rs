@@ -5,7 +5,7 @@ use {
 };
 
 /// The language tag type.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Lang([u8; 2]);
 
 impl Lang {

@@ -13,7 +13,7 @@ use {
     serde::{Deserialize, Serialize},
     std::{
         cmp::Reverse,
-        collections::{HashMap, HashSet},
+        collections::{BTreeSet, HashMap, HashSet},
         fs,
         io::{Error, ErrorKind},
         path::Path,
@@ -89,7 +89,7 @@ impl<'conf> Generator<'conf> {
             .entry(name.to_owned())
             .or_insert_with(|| ArticleMeta {
                 date: date::now(),
-                langs: HashSet::new(),
+                langs: BTreeSet::new(),
             });
 
         let conf = self.conf;
@@ -279,7 +279,7 @@ fn read_conf() -> Result<Conf, Error> {
 struct ArticleMeta {
     date: Date,
     #[serde(default)]
-    langs: HashSet<Lang>,
+    langs: BTreeSet<Lang>,
 }
 
 #[derive(Serialize, Deserialize)]
