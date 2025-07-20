@@ -128,18 +128,6 @@ h6 {
     max-width: var(--content-width);
 }
 
-@media (max-width: 870px) {
-    .content>* {
-        padding-left: calc(var(--pad) / 2);
-        padding-right: calc(var(--pad) / 2);
-    }
-
-    .content>pre {
-        padding: var(--pad);
-        border-radius: 0;
-    }
-}
-
 header {
     font-weight: bold;
     width: 100%;
@@ -267,7 +255,7 @@ footer {
 
 footer .socials {
     display: flex;
-    gap: 30px;
+    gap: 20px;
     justify-content: center;
     align-items: center;
 }
@@ -285,4 +273,32 @@ footer .icon svg {
 
 footer .icon:hover svg {
     fill: var(--li);
+}
+
+@media (max-width: 870px) {
+    .blog-title {
+        font-size: 3rem;
+    }
+
+    .button {
+        margin-left: calc(var(--pad) / 4);
+    }
+
+    .content>* {
+        padding-left: calc(var(--pad) / 2);
+        padding-right: calc(var(--pad) / 2);
+    }
+
+    .content>pre {
+        padding: var(--pad);
+        border-radius: 0;
+    }
+
+    footer .socials {
+        gap: 0px;
+    }
+
+    footer .icon {
+        padding: 1.2rem;
+    }
 }
