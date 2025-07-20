@@ -4,6 +4,7 @@ use {
     time::Month,
 };
 
+/// The language tag type.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Lang([u8; 2]);
 
@@ -28,6 +29,7 @@ impl Lang {
         Self::from_ascii(s).ok_or(Error::NonAsciiLowercaseAlphabetic)
     }
 
+    /// Represents the lang value as [`str`].
     fn as_str(&self) -> &str {
         str::from_utf8(&self.0).expect("ascii chars")
     }
