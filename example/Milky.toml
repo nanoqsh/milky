@@ -16,3 +16,7 @@ icon = "x"
 [[social]]
 href = "https://discord.com/users/589014218498375680"
 icon = "ds"
+
+[[social]]
+href = "mailto:nanoqsh@gmail.com"
+icon = "em"
