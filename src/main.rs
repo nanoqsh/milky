@@ -2,6 +2,7 @@ mod date;
 mod html;
 mod icon;
 mod lang;
+mod rust;
 
 use {
     crate::{

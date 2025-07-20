@@ -8,6 +8,8 @@
     --ty: #7daea3;
     --ge: #89b482;
     --id: #e5d1a4;
+    --mc: #89b482;
+    --lt: #89b482;
     --cm: #928374;
     --code: #caaf7f;
     --border: 4px;
@@ -225,6 +227,14 @@ code .ge {
 
 code .id {
     color: var(--id);
+}
+
+code .mc {
+    color: var(--mc);
+}
+
+code .lt {
+    color: var(--lt);
 }
 
 code .cm {
