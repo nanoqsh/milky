@@ -190,10 +190,6 @@ impl<'conf> Generator<'conf> {
         let assets = [
             ("dist/style.css", include_str!("../assets/style.css")),
             ("dist/favicon.svg", include_str!("../assets/favicon.svg")),
-            (
-                "dist/manifest.json",
-                include_str!("../assets/manifest.json"),
-            ),
         ];
 
         for (path, contents) in assets {

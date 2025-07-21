@@ -290,7 +290,7 @@ footer .icon:hover svg {
     }
 
     .content>pre {
-        padding: var(--pad);
+        padding: calc(var(--pad) / 2);
         border-radius: 0;
     }
 
