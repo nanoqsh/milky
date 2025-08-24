@@ -93,7 +93,7 @@ fn list(posts: &[Post<'_>], l: Localizer<'_>) -> maud::Markup {
     let href = |name| format!("{}/{name}.html", l.lang());
 
     maud::html! {
-        ul .content.deferred.show {
+        ul .content {
             @for Post { name, title, date } in posts {
                 li .list-item {
                     a href=(href(name)) { (title) }
@@ -106,7 +106,7 @@ fn list(posts: &[Post<'_>], l: Localizer<'_>) -> maud::Markup {
 
 fn article(article: &str) -> maud::Markup {
     maud::html! {
-        article .content.deferred.show { (maud::PreEscaped(article)) }
+        article .content { (maud::PreEscaped(article)) }
     }
 }
 
@@ -121,7 +121,7 @@ where
     S: maud::Render,
 {
     maud::html! {
-        header .content.deferred.show {
+        header .content {
             .blog-title { (blog) }
             (subtitle)
             @if !title.is_empty() {
@@ -192,10 +192,9 @@ where
         }
         body {
             style { (maud::PreEscaped(include_str!("../assets/inline.css"))) }
-            script { (maud::PreEscaped(include_str!("../assets/show.js"))) }
             (header)
             (content)
-            footer .deferred.show {
+            footer {
                 .socials {
                     @for s in social {
                         a .icon href=(s.href) aria-label=(s.icon.label()) target="_blank" {

@@ -1,7 +1,0 @@
-.deferred {
-    opacity: 0;
-}
-
-.show {
-    transition: opacity 0.2s ease;
-}
