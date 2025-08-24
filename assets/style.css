@@ -155,7 +155,6 @@ header {
 
 article pre {
     padding: var(--pad);
-    overflow: scroll;
     background: var(--bgcode);
     border-radius: var(--border);
     text-wrap: wrap;
