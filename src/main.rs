@@ -141,7 +141,7 @@ impl<'conf> Generator<'conf> {
                 },
             });
 
-            write(&page_path, &page.into_string())?;
+            write(&page_path, page.into_string().as_bytes())?;
             meta.langs.insert(lang);
 
             Ok(())
@@ -174,7 +174,7 @@ impl<'conf> Generator<'conf> {
                 target: Target::List(posts),
             });
 
-            write(&page_path, &page.into_string())?;
+            write(&page_path, page.into_string().as_bytes())?;
         }
 
         Ok(())
@@ -188,8 +188,55 @@ impl<'conf> Generator<'conf> {
         }
 
         let assets = [
-            ("dist/style.css", include_str!("../assets/style.css")),
-            ("dist/favicon.svg", include_str!("../assets/favicon.svg")),
+            ("dist/style.css", &include_bytes!("../assets/style.css")[..]),
+            (
+                "dist/favicon.svg",
+                &include_bytes!("../assets/favicon.svg")[..],
+            ),
+            (
+                "dist/alfaslab-n-la.woff2",
+                &include_bytes!("../assets/alfaslab-n-la.woff2")[..],
+            ),
+            (
+                "dist/carlito-i-cy-700.woff2",
+                &include_bytes!("../assets/carlito-i-cy-700.woff2")[..],
+            ),
+            (
+                "dist/carlito-i-cy.woff2",
+                &include_bytes!("../assets/carlito-i-cy.woff2")[..],
+            ),
+            (
+                "dist/carlito-i-la-700.woff2",
+                &include_bytes!("../assets/carlito-i-la-700.woff2")[..],
+            ),
+            (
+                "dist/carlito-i-la.woff2",
+                &include_bytes!("../assets/carlito-i-la.woff2")[..],
+            ),
+            (
+                "dist/carlito-n-cy-700.woff2",
+                &include_bytes!("../assets/carlito-n-cy-700.woff2")[..],
+            ),
+            (
+                "dist/carlito-n-cy.woff2",
+                &include_bytes!("../assets/carlito-n-cy.woff2")[..],
+            ),
+            (
+                "dist/carlito-n-la-700.woff2",
+                &include_bytes!("../assets/carlito-n-la-700.woff2")[..],
+            ),
+            (
+                "dist/carlito-n-la.woff2",
+                &include_bytes!("../assets/carlito-n-la.woff2")[..],
+            ),
+            (
+                "dist/jetbrains-m-cy.woff2",
+                &include_bytes!("../assets/jetbrains-m-cy.woff2")[..],
+            ),
+            (
+                "dist/jetbrains-m-la.woff2",
+                &include_bytes!("../assets/jetbrains-m-la.woff2")[..],
+            ),
         ];
 
         for (path, contents) in assets {
@@ -322,7 +369,7 @@ impl Meta {
             .inspect_err(|_| eprintln!("failed to serialize meta info"))
             .map_err(Error::other)?;
 
-        write("Meta.toml", &meta)?;
+        write("Meta.toml", meta.as_bytes())?;
         Ok(())
     }
 }
@@ -354,7 +401,7 @@ fn read(path: &str) -> Read {
     }
 }
 
-fn write(path: &str, contents: &str) -> Result<(), Error> {
+fn write(path: &str, contents: &[u8]) -> Result<(), Error> {
     fs::write(path, contents).inspect_err(|_| eprintln!("failed to write file {path}"))
 }
 

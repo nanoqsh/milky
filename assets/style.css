@@ -37,6 +37,7 @@ body {
     align-items: center;
     font-family: 'Carlito', sans-serif;
     font-size: 18px;
+    font-display: fallback;
 }
 
 .blog-title,

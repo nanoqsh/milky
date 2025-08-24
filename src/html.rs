@@ -7,7 +7,14 @@ use {
         rust,
     },
     pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd},
-    std::{borrow::Cow, cmp, collections::HashSet, fmt::Write, iter},
+    std::{
+        borrow::Cow,
+        cell::RefCell,
+        cmp,
+        collections::{HashMap, HashSet},
+        fmt::Write,
+        iter,
+    },
 };
 
 pub struct Translation {
@@ -184,14 +191,11 @@ where
             meta name="viewport" content="width=device-width, initial-scale=1.0";
             meta name="theme-color" content="#282726";
             link rel="icon" href=(relative_path("favicon.svg", level));
-            link rel="preconnect" href="https://fonts.googleapis.com";
-            link rel="preconnect" href="https://fonts.gstatic.com" crossorigin;
-            link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Carlito:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet";
             link rel="stylesheet" href=(relative_path("style.css", level));
             title { (title) }
         }
         body {
-            style { (maud::PreEscaped(include_str!("../assets/inline.css"))) }
+            style { (inline_css(level)) }
             (header)
             (content)
             footer {
@@ -205,6 +209,40 @@ where
             }
         }
     }
+}
+
+fn inline_css(level: u8) -> impl maud::Render {
+    fn gen_inline_css(level: u8) -> String {
+        let mut buffer = String::new();
+        let mut chunks = include_str!("../assets/inline.css.pre").split("[LEVEL]");
+        let Some(chunk) = chunks.next() else {
+            return buffer;
+        };
+
+        buffer.push_str(chunk);
+        for chunk in chunks {
+            for _ in 0..level {
+                buffer.push_str("../");
+            }
+
+            buffer.push_str(chunk);
+        }
+
+        buffer
+    }
+
+    thread_local! {
+        static CSS: RefCell<HashMap<u8, &'static str>> = RefCell::default();
+    }
+
+    CSS.with(|c| {
+        let css = *c
+            .borrow_mut()
+            .entry(level)
+            .or_insert_with(|| gen_inline_css(level).leak());
+
+        maud::PreEscaped(css)
+    })
 }
 
 fn relative_path(base: &str, level: u8) -> impl maud::Render {
