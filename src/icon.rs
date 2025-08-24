@@ -5,6 +5,7 @@ use {
 
 #[derive(Clone, Copy)]
 pub enum Icon {
+    Bluesky,
     Discord,
     Github,
     X,
@@ -17,11 +18,12 @@ pub enum Icon {
 impl Icon {
     fn from_str(s: &str) -> Result<Self, UnknownIcon> {
         match s {
+            "bs" => Ok(Self::Bluesky),
             "ds" => Ok(Self::Discord),
             "gh" => Ok(Self::Github),
             "x" => Ok(Self::X),
             "em" => Ok(Self::Email),
-            "bs" => Ok(Self::Bookshelf),
+            "bo" => Ok(Self::Bookshelf),
             "dt" => Ok(Self::Date),
             "ea" => Ok(Self::Earth),
             _ => Err(UnknownIcon),
@@ -30,6 +32,7 @@ impl Icon {
 
     fn svg(self) -> &'static str {
         match self {
+            Self::Bluesky => include_str!("../icons/bluesky.svg"),
             Self::Discord => include_str!("../icons/discord.svg"),
             Self::Github => include_str!("../icons/github.svg"),
             Self::X => include_str!("../icons/x.svg"),
@@ -42,6 +45,7 @@ impl Icon {
 
     pub fn label(self) -> &'static str {
         match self {
+            Self::Bluesky => "Bluesky",
             Self::Discord => "Discord",
             Self::Github => "GitHub",
             Self::X => "Twitter",

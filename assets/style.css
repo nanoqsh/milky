@@ -159,6 +159,8 @@ article pre {
     background: var(--bgcode);
     border-radius: var(--border);
     text-wrap: wrap;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 article p {
