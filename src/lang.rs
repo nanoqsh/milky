@@ -115,6 +115,14 @@ impl<'loc> Localizer<'loc> {
         &payload.articles
     }
 
+    pub fn human_generated(&self) -> &'loc str {
+        let Some(payload) = self.local.get(self.lang) else {
+            return "";
+        };
+
+        &payload.human_generated
+    }
+
     pub fn lang(self) -> Lang {
         self.lang
     }
@@ -141,4 +149,5 @@ impl Local {
 struct Payload {
     articles: Box<str>,
     month: [Box<str>; 12],
+    human_generated: Box<str>,
 }

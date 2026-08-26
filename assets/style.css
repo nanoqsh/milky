@@ -15,7 +15,7 @@
     --border: 4px;
     --pad: 1.5rem;
     --content-width: 870px;
-    --button-height: 30px;
+    --button-height: 26px;
 }
 
 ::selection {
@@ -154,6 +154,29 @@ header {
     transition: fill 0.2s ease;
 }
 
+.note {
+    margin-left: calc(var(--pad) / 2);
+    padding: 0 0.8rem;
+    line-height: var(--button-height);
+    height: var(--button-height);
+    font-size: 1.2rem;
+    background: var(--cm);
+    color: var(--bgcode);
+    border-radius: calc(var(--button-height) / 2);
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    user-select: none;
+}
+
+.note svg {
+    margin-left: 6px;
+    width: 20px;
+    height: 20px;
+    fill: var(--bgcode);
+    transition: fill 0.2s ease;
+}
+
 article pre {
     padding: var(--pad);
     background: var(--bgcode);
@@ -280,6 +303,10 @@ footer .icon:hover svg {
 @media (max-width: 870px) {
     .blog-title {
         font-size: 3rem;
+    }
+
+    .note {
+        margin-left: calc(var(--pad) / 4);
     }
 
     .button {

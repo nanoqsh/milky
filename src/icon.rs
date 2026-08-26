@@ -11,6 +11,7 @@ pub enum Icon {
     X,
     Email,
     Bookshelf,
+    Brain,
     Date,
     Earth,
 }
@@ -24,6 +25,7 @@ impl Icon {
             "x" => Ok(Self::X),
             "em" => Ok(Self::Email),
             "bo" => Ok(Self::Bookshelf),
+            "br" => Ok(Self::Brain),
             "dt" => Ok(Self::Date),
             "ea" => Ok(Self::Earth),
             _ => Err(UnknownIcon),
@@ -38,6 +40,7 @@ impl Icon {
             Self::X => include_str!("../icons/x.svg"),
             Self::Email => include_str!("../icons/email.svg"),
             Self::Bookshelf => include_str!("../icons/bookshelf.svg"),
+            Self::Brain => include_str!("../icons/brain.svg"),
             Self::Date => include_str!("../icons/date.svg"),
             Self::Earth => include_str!("../icons/earth.svg"),
         }
@@ -51,6 +54,7 @@ impl Icon {
             Self::X => "Twitter",
             Self::Email => "Email",
             Self::Bookshelf => "Bookshelf",
+            Self::Brain => "Brain",
             Self::Date => "Date",
             Self::Earth => "Earth",
         }

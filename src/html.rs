@@ -55,8 +55,8 @@ pub fn make(make: Make<'_>) -> maud::Markup {
 
     match target {
         Target::List(posts) => {
-            let placeholder = maud::html! { div {} };
-            let subtitle = subtitle(placeholder, translations_into_buttons, 0);
+            let empty = maud::html! { div {} };
+            let subtitle = subtitle(empty.clone(), empty, translations_into_buttons, 0);
             let header = header(blog, title, subtitle);
             page(blog, header, list(posts, l), social, 0)
         }
@@ -71,7 +71,7 @@ pub fn make(make: Make<'_>) -> maud::Markup {
 
             let html = md_to_html(md, deps);
             let date = date_block(date, l);
-            let subtitle = subtitle(date, buttons, 1);
+            let subtitle = subtitle(date, human(l), buttons, 1);
             let header = header(blog, title, subtitle);
             page(title, header, article(&html), social, 1)
         }
@@ -123,6 +123,12 @@ fn date_block(date: Date, l: Localizer<'_>) -> maud::Markup {
     }
 }
 
+fn human(l: Localizer<'_>) -> maud::Markup {
+    maud::html! {
+        .note title=(l.human_generated()) { "human" (Icon::Brain) }
+    }
+}
+
 fn header<S>(blog: &str, title: &str, subtitle: S) -> maud::Markup
 where
     S: maud::Render,
@@ -162,14 +168,18 @@ impl<'art> Button<'art> {
     }
 }
 
-fn subtitle<'art, D, B>(date: D, buttons: B, level: u8) -> maud::Markup
+fn subtitle<'art, D, H, B>(date: D, human: H, buttons: B, level: u8) -> maud::Markup
 where
     D: maud::Render,
+    H: maud::Render,
     B: IntoIterator<Item = Button<'art>>,
 {
     maud::html! {
         .hor {
-            (date)
+            .hor {
+                (date)
+                (human)
+            }
             .hor {
                 @for Button { icon, label, href } in buttons {
                     a .hor.button href=(relative_path(&href, level)) { (icon) (label) }
