@@ -14,6 +14,7 @@ month = [
     "ноя",
     "дек",
 ]
+human_generated = "Этот контент создавал человек! Будье внимательны, люди могут ошибаться"
 
 [en]
 articles = "articles"
@@ -31,3 +32,4 @@ month = [
     "nov",
     "dec",
 ]
+human_generated = "This content is human-generated! Be careful, humans can make mistakes"
