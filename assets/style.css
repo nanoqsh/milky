@@ -307,7 +307,7 @@ footer .icon:hover svg {
     }
 
     .note {
-        margin-left: calc(var(--pad) / 4);
+        display: none;
     }
 
     .button {
